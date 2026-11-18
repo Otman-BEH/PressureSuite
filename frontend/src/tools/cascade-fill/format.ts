@@ -1,3 +1,4 @@
+import { fmt, fmtMin } from '../../shared/format'
 import type { Fluid, HeatExchanger, MachineKind, MachineSpec, Mode, Source, StepStatus, TimeModel } from './types'
 
 export const SOURCE_REF_TEMP_C = 20
@@ -49,13 +50,6 @@ export const DEFAULT_TIME: TimeModel = {
   holdMin: 10,
 }
 
-/** Minutes as "45 min" or "2 h 05 min". */
-export function fmtMin(min: number): string {
-  if (min < 60) return `${fmt(min, min < 10 ? 1 : 0)} min`
-  const h = Math.floor(min / 60)
-  return `${h} h ${String(Math.round(min - h * 60)).padStart(2, '0')} min`
-}
-
 export const STATUS: Record<StepStatus, { label: string; chip: string }> = {
   vented: { label: 'Vented', chip: 'bg-slate-100 text-slate-700 ring-slate-300' },
   filled: { label: 'Bundle filled', chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
@@ -71,9 +65,7 @@ export const STATUS: Record<StepStatus, { label: string; chip: string }> = {
   fluid_mismatch: { label: 'Wrong gas', chip: 'bg-rose-50 text-rose-800 ring-rose-200' },
 }
 
-export function fmt(value: number, digits = 1): string {
-  return value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
-}
+export { fmt, fmtMin }
 
 export const cToK = (c: number) => c + 273.15
 export const totalVolumeL = (s: Pick<Source, 'cylinderVolumeL' | 'cylinderCount' | 'quantity'>) =>

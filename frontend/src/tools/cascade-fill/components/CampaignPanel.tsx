@@ -4,7 +4,7 @@ import { fmt, fmtMin, sourceName } from '../format'
 import { copvsDone, parallelCount, useStore } from '../store'
 import type { CampaignFill } from '../types'
 import { ArrowRight } from './icons'
-import { Chip, Panel } from './ui'
+import { Chip, Panel } from '../../../shared/ui'
 
 const th = 'px-2 py-1.5 text-left text-[11px] font-medium text-slate-500 whitespace-nowrap'
 const td = 'px-2 py-1.5 whitespace-nowrap tabular-nums'

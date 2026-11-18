@@ -161,7 +161,7 @@ export function toApiSequence(sequence: SequenceItem[]): ApiSequenceItem[] {
   })
 }
 
-/** All COPV Cascade Fill routes live under this prefix (see backend/app/routers/cascade_fill.py). */
+/** All COPV Cascade Fill routes live under this prefix (see backend/pressuresuite/api/routes/cascade_fill.py). */
 const TOOL = '/api/cascade-fill'
 
 interface OptimizeOptions {

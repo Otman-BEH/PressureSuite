@@ -17,4 +17,22 @@ export const TOOLS: Tool[] = [
     description: 'Cascade fill simulator & optimizer',
     component: lazy(() => import('./cascade-fill/CascadeFillTool').then((m) => ({ default: m.CascadeFillTool }))),
   },
+  {
+    id: 'stored-energy',
+    name: 'Stored Energy',
+    description: 'Gas and liquid stored energy, TNT equivalent',
+    component: lazy(() => import('./stored-energy/StoredEnergyTool').then((m) => ({ default: m.StoredEnergyTool }))),
+  },
+  {
+    id: 'hydro-test',
+    name: 'Hydrostatic Test',
+    description: 'Hydro test cycles: fluid volumes, energy, timing',
+    component: lazy(() => import('./hydro-test/HydroTestTool').then((m) => ({ default: m.HydroTestTool }))),
+  },
+  {
+    id: 'gas-test',
+    name: 'Gas Test',
+    description: 'Pneumatic acceptance test cycles, gas needed, bundles',
+    component: lazy(() => import('./gas-test/GasTestTool').then((m) => ({ default: m.GasTestTool }))),
+  },
 ]

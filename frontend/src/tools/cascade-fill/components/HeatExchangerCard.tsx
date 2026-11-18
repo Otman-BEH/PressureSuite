@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import type { HeatExchanger, HxPreview } from '../types'
 import { HeatExchangerIcon } from './icons'
 import { Group, Modal, Switch } from './Modal'
-import { NumberField, Segmented } from './ui'
+import { NumberField, Segmented } from '../../../shared/ui'
 
 function OutletCheck() {
   const hx = useStore((s) => s.heatExchanger)

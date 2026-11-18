@@ -10,13 +10,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .. import config
-from .routes import cascade_fill
+from .routes import cascade_fill, gas_test, hydro_test, leak, stored_energy
 
 DESCRIPTION = """
 Real-gas engineering tools for high-pressure gas systems. Each tool has its own routes under `/api/<tool-id>/`.
 
 **COPV Cascade Fill** (`/api/cascade-fill/`): simulate, optimise and plan cascade fills of a COPV from gas bundles and
 bottles. Gas properties from CoolProp.
+
+**Stored Energy** (`/api/stored-energy/`): energy released by a pressurised gas or liquid vessel, with TNT and other
+equivalents. Gauge pressures relative to 1 bar a.
+
+**Hydrostatic Test** (`/api/hydro-test/`): liquid pumped in and returned, stored energy and timing per test cycle, and
+tank or gas pocket volume from a press/depress. Gauge pressures relative to 1 bar a.
+
+**Gas Test** (`/api/gas-test/`): pneumatic test cycles, gas used, stored energy and supply bundles.
+
+**Leak rate** (`/api/leak/`): pressure decay from a leak rate, or the leak rate from a decay (a sidebar calculator on the
+test tabs).
 """
 
 app = FastAPI(title="pressuresuite API", version=config.API_VERSION, description=DESCRIPTION)
@@ -28,6 +39,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(cascade_fill.router)
+app.include_router(stored_energy.router)
+app.include_router(hydro_test.router)
+app.include_router(gas_test.router)
+app.include_router(leak.router)
 
 
 @app.exception_handler(ValueError)
@@ -39,7 +54,8 @@ async def _value(_: Request, ex: ValueError):
 @app.get("/api", include_in_schema=False)
 def api_root():
     return {"name": "pressuresuite API", "version": config.API_VERSION, "docs": "/docs",
-            "tools": {"cascade-fill": "/api/cascade-fill/"},
+            "tools": {"cascade-fill": "/api/cascade-fill/", "stored-energy": "/api/stored-energy/",
+                      "hydro-test": "/api/hydro-test/", "gas-test": "/api/gas-test/", "leak": "/api/leak/"},
             "web_page": "served at / once built (npm run build in frontend/)" if not config.WEB_DIR.is_dir() else "/"}
 
 

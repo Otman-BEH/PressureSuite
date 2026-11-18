@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import type { StepOut } from '../types'
 import { FillCharts } from './FillChart'
 import { TimelineCharts } from './TimelineCharts'
-import { Chip, Panel, Segmented } from './ui'
+import { Chip, Panel, Segmented } from '../../../shared/ui'
 
 function Stat({ label, value, unit, sub, title }: { label: string; value: string; unit?: string; sub?: ReactNode; title?: string }) {
   return (

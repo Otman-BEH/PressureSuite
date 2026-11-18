@@ -2,7 +2,7 @@ import { DEFAULT_TIME, fmt } from '../format'
 import { useStore } from '../store'
 import { ClockIcon } from './icons'
 import { Group, Modal, Switch } from './Modal'
-import { NumberField } from './ui'
+import { NumberField } from '../../../shared/ui'
 
 /** Outer surface of a cylinder with hemispherical ends, 3 diameters long (matches the backend estimate). */
 export function estimatedArea(volumeL: number): number {

@@ -7,7 +7,8 @@ import { currentBarg, parallelCount, useStore } from '../store'
 import { SEQUENCE_ZONE, type DragData } from '../dnd'
 import type { SequenceItem, Source, StepOut } from '../types'
 import { ArrowRight, BoosterIcon, BundleIcon, ClockIcon, CompressorIcon, CooldownIcon, HeatExchangerIcon, ManifoldIcon, PlusIcon, XIcon } from './icons'
-import { Chip, FluidChip, IconButton, NumberField, Panel, Stepper } from './ui'
+import { Chip, IconButton, NumberField, Panel, Stepper } from '../../../shared/ui'
+import { FluidChip } from './ui'
 
 const inlineSelect =
   'max-w-[7.5rem] truncate rounded bg-transparent px-0.5 text-xs font-medium text-sky-800 outline-none hover:bg-sky-50 focus:ring-2 focus:ring-sky-500'

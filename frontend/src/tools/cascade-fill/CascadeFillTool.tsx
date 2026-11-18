@@ -92,7 +92,7 @@ function Footer() {
   }, [])
   return (
     <footer className="px-1 pb-2 text-[11px] text-slate-500">
-      {offline && <p className="mb-1 font-medium text-rose-700">Backend not reachable. Start it with: uvicorn pressuresuite.api.main:app --port 8000 (in backend/).</p>}
+      {offline && <p className="mb-1 font-medium text-rose-700">Backend not reachable. Start it with: python run.py (in backend/).</p>}
       {meta && (
         <p>
           CoolProp {meta.coolprop_version} · {meta.backend} backend · equations of state:{' '}
@@ -163,7 +163,7 @@ export function CascadeFillTool() {
           <Sidebar />
           <main className="flex min-w-0 flex-1 flex-col gap-4 p-4">
             <PoolPanel />
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
+            <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-stretch">
               <div className="min-w-0 flex-1">{view === 'manual' ? <SequenceLane /> : <OptimizerPanel />}</div>
               <CopvCard />
             </div>

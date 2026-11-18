@@ -1,7 +1,7 @@
 import { useStore } from '../store'
 import { ManifoldIcon } from './icons'
 import { Group, Modal, Switch } from './Modal'
-import { NumberField } from './ui'
+import { NumberField } from '../../../shared/ui'
 
 export function ManifoldCard() {
   const manifold = useStore((s) => s.manifold)

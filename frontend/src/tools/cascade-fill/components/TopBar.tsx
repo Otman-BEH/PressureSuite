@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import type { HistoryEntry, Mode, View } from '../types'
 import type { Scenario } from '../store'
 import { Switch } from './Modal'
-import { NumberField, Segmented } from './ui'
+import { NumberField, Segmented } from '../../../shared/ui'
 
 export function TopBar() {
   const settings = useStore((s) => s.settings)

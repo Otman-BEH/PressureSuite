@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
+import { persist } from 'zustand/middleware'
+import { toolStorage } from '../../shared/storage'
 import { DEFAULT_HX, DEFAULT_MACHINES, DEFAULT_TIME, FLUID_DEFAULT_PRESSURE, MACHINES, sourceName, uid } from './format'
 import type {
   ApiSequenceItem,
@@ -32,31 +33,6 @@ try {
   localStorage.removeItem(LEGACY_STORAGE_KEY)
 } catch {
   /* storage unavailable: nothing to migrate */
-}
-
-// localStorage can be missing or throw (private windows, blocked storage); the app works without it.
-const safeStorage: StateStorage = {
-  getItem: (key) => {
-    try {
-      return localStorage.getItem(key)
-    } catch {
-      return null
-    }
-  },
-  setItem: (key, value) => {
-    try {
-      localStorage.setItem(key, value)
-    } catch {
-      /* not persisted */
-    }
-  },
-  removeItem: (key) => {
-    try {
-      localStorage.removeItem(key)
-    } catch {
-      /* nothing to remove */
-    }
-  },
 }
 
 export interface Scenario {
@@ -461,7 +437,7 @@ export const useStore = create<AppState>()(
     {
       name: STORAGE_KEY,
       version: 3,
-      storage: createJSONStorage(() => safeStorage),
+      storage: toolStorage(),
       partialize: (s) => ({
         settings: s.settings,
         copv: s.copv,

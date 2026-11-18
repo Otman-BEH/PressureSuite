@@ -5,7 +5,8 @@ import { currentBarg, useStore } from '../store'
 import { POOL_ZONE, type DragData } from '../dnd'
 import type { Fluid, Source } from '../types'
 import { ArrowRight, BottleIcon, BundleIcon, PencilIcon, TrashIcon } from './icons'
-import { Chip, FluidChip, IconButton, NumberField, Panel, Segmented, Stepper } from './ui'
+import { Chip, IconButton, NumberField, Panel, Segmented, Stepper } from '../../../shared/ui'
+import { FluidChip } from './ui'
 
 export function SourceVisual({ source }: { source: Source }) {
   const Icon = source.kind === 'bundle' ? BundleIcon : BottleIcon

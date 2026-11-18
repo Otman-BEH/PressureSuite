@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import type { MachineKind, MachinePreview } from '../types'
 import { BoosterIcon, CompressorIcon } from './icons'
 import { Group, Modal } from './Modal'
-import { NumberField } from './ui'
+import { NumberField } from '../../../shared/ui'
 
 function OutletCheck({ kind }: { kind: MachineKind }) {
   const spec = useStore((s) => s.equipment[kind])

@@ -4,7 +4,7 @@ import { fmt, sourceName } from '../format'
 import { parallelCount, useStore } from '../store'
 import type { PlanOut } from '../types'
 import { ArrowRight, CooldownIcon } from './icons'
-import { Chip, NumberField, Panel } from './ui'
+import { Chip, NumberField, Panel } from '../../../shared/ui'
 
 function PlanSteps({ plan }: { plan: PlanOut }) {
   const sources = useStore((s) => s.sources)

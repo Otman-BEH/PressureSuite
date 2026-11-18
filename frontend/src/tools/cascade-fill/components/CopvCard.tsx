@@ -1,7 +1,7 @@
 import { fmt, fmtMin, sourceName } from '../format'
 import { copvsDone, currentBarg, parallelCount, useStore } from '../store'
 import type { AfterTest, Fluid, Summary } from '../types'
-import { Chip, NumberField, Segmented } from './ui'
+import { Chip, NumberField, Segmented } from '../../../shared/ui'
 
 const GAS_COLOR: Record<Fluid, string> = { Nitrogen: '#2a78d6', Helium: '#4a3aa7' }
 
@@ -142,7 +142,7 @@ export function CopvCard() {
   const parallel = useStore((s) => parallelCount(s.manifold))
 
   return (
-    <section className="flex w-full shrink-0 flex-col rounded-xl bg-white ring-2 ring-slate-800 xl:w-80">
+    <section className="flex w-full shrink-0 flex-col rounded-xl bg-white ring-2 ring-slate-800 2xl:w-80">
       <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
         <h2 className="text-sm font-semibold text-slate-800">{parallel > 1 ? `Target COPVs ×${parallel}` : "Target COPV"}</h2>
         <Segmented<Fluid>
@@ -195,7 +195,7 @@ export function CopvCard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-t border-slate-100 px-4 py-3">
+      <div className="grid grid-cols-2 gap-2 border-t border-slate-100 px-4 py-3 md:grid-cols-4 2xl:grid-cols-2">
         <NumberField label="Volume" value={copv.volumeL} onChange={(volumeL) => setCopv({ volumeL })} min={0.1} max={100000} unit="L" />
         <NumberField
           label={`Target (settled at ${fmt(ambient)} °C)`}
@@ -227,7 +227,7 @@ export function CopvCard() {
               unit="J/kg·K"
               digits={0}
             />
-            <p className="col-span-2 text-[11px] text-slate-500">
+            <p className="col-span-2 text-[11px] text-slate-500 md:col-span-4 2xl:col-span-2">
               {mode === 'adiabatic_wall'
                 ? 'The wall is assumed to stay at the gas temperature, so this mode slightly under-predicts gas heating. Real fills sit between Adiabatic and this mode.'
                 : 'Used by the time estimate for cool-down times.'}
