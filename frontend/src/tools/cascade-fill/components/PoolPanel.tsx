@@ -5,7 +5,7 @@ import { currentBarg, useStore } from '../store'
 import { POOL_ZONE, type DragData } from '../dnd'
 import type { Fluid, Source } from '../types'
 import { ArrowRight, BottleIcon, BundleIcon, PencilIcon, TrashIcon } from './icons'
-import { Chip, IconButton, NumberField, Panel, Segmented, Stepper } from '../../../shared/ui'
+import { Button, IconButton, Lamp, NumberField, Panel, Segmented, Stepper, TextField } from '../../../shared/ui'
 import { FluidChip } from './ui'
 
 export function SourceVisual({ source }: { source: Source }) {
@@ -14,21 +14,21 @@ export function SourceVisual({ source }: { source: Source }) {
   const level = Math.min(1, now / Math.max(source.ratedBarg, 1e-9))
   return (
     <div className="flex items-start gap-3">
-      <Icon className={`${source.kind === 'bundle' ? 'h-10 w-10' : 'h-10 w-6'} shrink-0 ${source.fluid === 'Helium' ? 'text-violet-600' : 'text-sky-600'}`} />
+      <Icon className={`${source.kind === 'bundle' ? 'h-10 w-10' : 'h-10 w-6'} shrink-0 text-ink`} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-semibold text-slate-800">{source.label}</span>
+          <span className="truncate text-body font-semibold text-ink">{source.label}</span>
           <FluidChip fluid={source.fluid} />
         </div>
-        <div className="text-[11px] text-slate-500">{describeSize(source)}</div>
-        <div className="mt-0.5 text-base font-semibold text-slate-900 tabular-nums">
+        <div className="text-small text-muted">{describeSize(source)}</div>
+        <div className="mt-0.5 text-base font-semibold text-ink tabular-nums">
           {fmt(now)}{' '}
-          <span className="text-xs font-normal text-slate-500">
+          <span className="text-small font-normal text-muted">
             / {fmt(source.ratedBarg, 0)} barg
           </span>
         </div>
-        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100" title={`${fmt(level * 100, 0)} % of rated pressure`}>
-          <div className={`h-full rounded-full ${source.fluid === 'Helium' ? 'bg-violet-500' : 'bg-sky-500'}`} style={{ width: `${level * 100}%` }} />
+        <div className="mt-1 h-1.5 w-full overflow-hidden bg-bg" title={`${fmt(level * 100, 0)} % of rated pressure`}>
+          <div className={`h-full bg-muted`} style={{ width: `${level * 100}%` }} />
         </div>
       </div>
     </div>
@@ -39,9 +39,9 @@ export function SourceVisual({ source }: { source: Source }) {
 function FillState({ source }: { source: Source }) {
   const update = (patch: Partial<Source>) => useStore.getState().updateSource(source.id, patch)
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-700" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-small text-ink" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       <label className="flex items-center gap-1.5">
-        <input type="checkbox" checked={source.filled} onChange={(e) => update({ filled: e.target.checked })} className="accent-sky-600" />
+        <input type="checkbox" checked={source.filled} onChange={(e) => update({ filled: e.target.checked })} />
         Filled
       </label>
       {!source.filled && (
@@ -68,17 +68,10 @@ function FillState({ source }: { source: Source }) {
 function SourceEditor({ source }: { source: Source }) {
   const update = (patch: Partial<Source>) => useStore.getState().updateSource(source.id, patch)
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      <label className="col-span-2 flex flex-col gap-1">
-        <span className="text-[11px] font-medium text-slate-500">Name</span>
-        <input
-          value={source.label}
-          onChange={(e) => update({ label: e.target.value })}
-          className="rounded-md px-2 py-1 text-sm ring-1 ring-slate-300 outline-none focus:ring-2 focus:ring-sky-500"
-        />
-      </label>
+    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-rule pt-3" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <TextField className="col-span-2" label="Name" value={source.label} onChange={(label) => update({ label })} />
       <div className="col-span-2 flex flex-col gap-1">
-        <span className="text-[11px] font-medium text-slate-500">Gas</span>
+        <span className="text-label font-medium text-muted uppercase">Gas</span>
         <Segmented<Fluid>
           label="Gas"
           value={source.fluid}
@@ -137,7 +130,7 @@ function SourceCard({ source }: { source: Source }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`w-64 shrink-0 cursor-grab rounded-xl bg-white p-3 ring-1 ring-slate-200 hover:ring-sky-400 active:cursor-grabbing ${
+      className={`w-64 shrink-0 cursor-grab border-r border-rule p-3 hover:bg-inset active:cursor-grabbing ${
         isDragging ? 'opacity-40' : ''
       } ${wrongGas || (view === 'optimize' && excluded) ? 'opacity-60' : ''}`}
     >
@@ -147,14 +140,14 @@ function SourceCard({ source }: { source: Source }) {
           <IconButton label={editing ? 'Close editor' : 'Edit source'} onClick={() => setEditing(!editing)}>
             <PencilIcon className="size-3.5" />
           </IconButton>
-          <IconButton label="Delete source" onClick={() => removeSource(source.id)} className="hover:text-rose-600">
+          <IconButton label="Delete source" onClick={() => removeSource(source.id)} className="hover:text-crit">
             <TrashIcon className="size-3.5" />
           </IconButton>
         </div>
       </div>
       <FillState source={source} />
 
-      <div className="mt-2 flex flex-col gap-0.5 text-[11px] text-slate-500">
+      <div className="mt-2 flex flex-col gap-0.5 text-small text-muted">
         {ambient !== SOURCE_REF_TEMP_C && result && (
           <span className="tabular-nums">
             At {fmt(ambient)} °C: {fmt(result.start.pressure_barg)} barg
@@ -162,33 +155,31 @@ function SourceCard({ source }: { source: Source }) {
         )}
         {result && (result.connections > 0 || Math.abs(result.used_kg) > 1e-6) && (
           <span
-            className="text-slate-700 tabular-nums"
+            className="text-ink tabular-nums"
             title={mode !== 'isothermal' ? `End of fill ${fmt(result.end.pressure_barg)} barg at ${fmt(result.end.temp_c)} °C gas` : undefined}
           >
             After this fill → <b>{fmt(result.settled_barg)} barg</b>
           </span>
         )}
-        {wrongGas && <Chip className="self-start bg-rose-50 text-rose-700 ring-rose-200">Not the COPV gas: ignored</Chip>}
-        {isRecovery && <Chip className="self-start bg-amber-50 text-amber-800 ring-amber-200">Recovery bundle</Chip>}
+        {wrongGas && <Lamp status="crit">Not the COPV gas: ignored</Lamp>}
+        {isRecovery && <Lamp status="idle">Recovery bundle</Lamp>}
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         {view === 'manual' ? (
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
+          <Button
+            variant="secondary"
             onClick={() => insertSequence({ type: 'source', sourceId: source.id })}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-sky-700 ring-1 ring-sky-200 hover:bg-sky-50"
           >
             Add to sequence <ArrowRight className="size-3.5" />
-          </button>
+          </Button>
         ) : (
-          <label className="inline-flex items-center gap-1.5 text-xs text-slate-700" onPointerDown={(e) => e.stopPropagation()}>
-            <input type="checkbox" checked={!excluded && !wrongGas} disabled={wrongGas} onChange={() => toggleExcluded(source.id)} className="accent-sky-600" />
+          <label className="inline-flex items-center gap-1.5 text-small text-ink" onPointerDown={(e) => e.stopPropagation()}>
+            <input type="checkbox" checked={!excluded && !wrongGas} disabled={wrongGas} onChange={() => toggleExcluded(source.id)} />
             Use in optimizer
           </label>
         )}
-        {view === 'manual' && uses > 0 && <span className="text-[11px] text-slate-500">in sequence {uses}×</span>}
+        {view === 'manual' && uses > 0 && <span className="text-small whitespace-nowrap text-muted">in sequence {uses}×</span>}
       </div>
 
       {editing && <SourceEditor source={source} />}
@@ -208,22 +199,22 @@ export function PoolPanel() {
     <Panel
       title={
         <>
-          Gas inventory <span className="font-normal text-slate-500">· {sources.length} sources</span>
+          Gas inventory <span className="font-normal text-muted">· {sources.length} sources</span>
         </>
       }
-      aside={<span className="text-[11px] text-slate-500">Pressures are gauge, quoted at {SOURCE_REF_TEMP_C} °C. Drag a sequence step here to remove it.</span>}
+      aside={accepting && origin === 'sequence' && <span className="text-small text-muted">Drop the step here to remove it</span>}
     >
       <div
         ref={setNodeRef}
-        className={`flex min-h-32 gap-3 overflow-x-auto rounded-lg p-1 pb-2 transition-colors ${
-          accepting ? (isOver ? 'bg-sky-50 outline-2 outline-sky-400' : 'outline-2 outline-dashed outline-sky-300') : ''
+        className={`-m-3 flex min-h-32 overflow-x-auto transition-colors ${
+          accepting ? (isOver ? 'bg-accent-tint outline-2 outline-accent' : 'outline-2 outline-dashed outline-accent') : ''
         }`}
       >
         {sources.map((s) => (
           <SourceCard key={s.id} source={s} />
         ))}
         {!sources.length && (
-          <div className="grid w-full place-items-center rounded-lg border-2 border-dashed border-slate-200 text-sm text-slate-500">
+          <div className="m-3 grid flex-1 place-items-center border-2 border-dashed border-rule text-body text-muted">
             Drag a bundle or bottle here
           </div>
         )}

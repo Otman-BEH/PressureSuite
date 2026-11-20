@@ -1,6 +1,8 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fmt, fmtMin, fmtSig } from './format'
+import { axisProps, CHART_MARGIN, ChartFrame, ChartTooltip, cursorProps, gridProps, lineProps, yAxisProps } from './chartTheme'
 import { NumberField, OptionalNumberField, Panel } from './ui'
+import { COLOR, DATA_VESSEL } from './theme'
 
 /** One test cycle as edited in the hydrostatic and gas test tabs (API: CycleIn). */
 export interface Cycle {
@@ -69,19 +71,19 @@ export const cycleInputHeaders = (recording: boolean) => [
 
 /** The editable cells of a cycle row: target, hold, (measured end of hold), vent-down pressure, hold at vent. */
 export function CycleInputCells({ cycle, recording, onChange }: { cycle: Cycle; recording: boolean; onChange: (patch: Partial<Cycle>) => void }) {
-  const cell = 'px-1.5 py-1.5'
+  const cell = 'px-2 py-1'
   return (
     <>
       <td className={cell}>
-        <NumberField className="w-[4.5rem]" value={cycle.targetBarg} min={0.01} max={10_000} digits={2} onChange={(targetBarg) => onChange({ targetBarg })} />
+        <NumberField className="w-[4.5rem]" alignRight value={cycle.targetBarg} min={0.01} max={10_000} digits={2} onChange={(targetBarg) => onChange({ targetBarg })} />
       </td>
       <td className={cell}>
-        <NumberField className="w-14" value={cycle.holdMin} min={0} max={100_000} digits={1} onChange={(holdMin) => onChange({ holdMin })} />
+        <NumberField className="w-14" alignRight value={cycle.holdMin} min={0} max={100_000} digits={1} onChange={(holdMin) => onChange({ holdMin })} />
       </td>
       {recording && (
         <td className={cell}>
           <OptionalNumberField
-            className="w-20"
+            className="w-20" alignRight
             value={cycle.measuredEndHoldBarg}
             min={0}
             max={10_000}
@@ -92,10 +94,10 @@ export function CycleInputCells({ cycle, recording, onChange }: { cycle: Cycle; 
         </td>
       )}
       <td className={cell}>
-        <NumberField className="w-[4.5rem]" value={cycle.ventBarg} min={0} max={10_000} digits={2} onChange={(ventBarg) => onChange({ ventBarg })} />
+        <NumberField className="w-[4.5rem]" alignRight value={cycle.ventBarg} min={0} max={10_000} digits={2} onChange={(ventBarg) => onChange({ ventBarg })} />
       </td>
       <td className={cell}>
-        <NumberField className="w-14" value={cycle.ventHoldMin} min={0} max={100_000} digits={1} onChange={(ventHoldMin) => onChange({ ventHoldMin })} />
+        <NumberField className="w-14" alignRight value={cycle.ventHoldMin} min={0} max={100_000} digits={1} onChange={(ventHoldMin) => onChange({ ventHoldMin })} />
       </td>
     </>
   )
@@ -111,55 +113,61 @@ export const repeatPayload = (on: boolean, count: number) => (on ? Math.max(1, M
 
 export const anyMeasured = (cycles: Cycle[]) => cycles.some((c) => c.measuredEndHoldBarg !== null)
 
-const INK = { muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7', line: '#2a78d6', measured: '#d0352b' }
-const axisProps = { tick: { fill: INK.muted, fontSize: 11 }, tickLine: false, axisLine: { stroke: INK.axis } } as const
+// Vessel pressure in the vessel colour; measured end-of-hold points are ink markers (DESIGN.md).
+const MEASURED_COLOR = COLOR.ink
 const MEASURED = 'Hold (measured)'
 
-function ChartTooltip({ active, payload, timeline }: { active?: boolean; payload?: { payload: TimePoint }[]; timeline: TimePoint[] }) {
+function PressureTooltip({ active, payload, timeline }: { active?: boolean; payload?: { payload: TimePoint }[]; timeline: TimePoint[] }) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   const i = timeline.indexOf(p)
   const rate = p.phase === MEASURED && i > 0 ? (timeline[i - 1].pressure_barg - p.pressure_barg) / (p.t_min - timeline[i - 1].t_min) : null
   return (
-    <div className="rounded-lg bg-white px-3 py-2 text-xs shadow-lg ring-1 ring-slate-200">
-      <div className="font-medium text-slate-500">
-        {p.cycle > 0 ? `Cycle ${p.cycle} · ` : ''}
-        {p.phase} · {fmtMin(p.t_min)}
-      </div>
-      <div className="font-semibold text-slate-900 tabular-nums">{fmt(p.pressure_barg, 3)} barg</div>
-      {rate !== null && <div className="text-rose-700 tabular-nums">leak {fmtSig(rate)} bar/min</div>}
-    </div>
+    <ChartTooltip
+      header={`${p.cycle > 0 ? `Cycle ${p.cycle} · ` : ''}${p.phase} · ${fmtMin(p.t_min)}`}
+      rows={[
+        { key: 'p', label: 'Pressure', value: `${fmt(p.pressure_barg, 3)} barg` },
+        ...(rate !== null ? [{ key: 'leak', label: 'Leak rate', value: `${fmtSig(rate)} bar/min` }] : []),
+      ]}
+    />
   )
 }
 
-function Dot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: TimePoint }) {
-  if (cx === undefined || cy === undefined) return null
-  const measured = payload?.phase === MEASURED
-  return <circle cx={cx} cy={cy} r={measured ? 4 : 2} fill={measured ? INK.measured : INK.line} stroke="white" strokeWidth={measured ? 1 : 0} />
+/** Only measured holds get a marker: an 8px ink dot with a surface ring. */
+function MeasuredDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: TimePoint }) {
+  if (cx === undefined || cy === undefined || payload?.phase !== MEASURED) return null
+  return <circle cx={cx} cy={cy} r={4} fill={MEASURED_COLOR} stroke={COLOR.surface} strokeWidth={2} />
 }
 
-/** Pressure against time over all cycles; holds with a measured end pressure are marked in red. */
+/** Pressure against time over all cycles; holds with a measured end pressure are marked. */
 export function PressureTimeChart({ timeline, caption }: { timeline: TimePoint[]; caption?: string }) {
   const measured = timeline.some((p) => p.phase === MEASURED)
+  const note = (
+    <>
+      {caption}
+      {measured && (
+        <span className="mt-1 flex items-center gap-1.5">
+          <svg viewBox="0 0 10 10" className="size-2.5" aria-hidden="true">
+            <circle cx="5" cy="5" r="4" fill={MEASURED_COLOR} />
+          </svg>
+          end of a hold with a measured pressure (hover for the leak rate)
+        </span>
+      )}
+    </>
+  )
   return (
     <Panel title="Pressure vs time">
-      <div className="h-64">
+      <ChartFrame yTitle="Pressure · barg" xTitle="Time · min" height={256} note={caption || measured ? note : undefined}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={timeline} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
-            <CartesianGrid stroke={INK.grid} vertical={false} />
-            <XAxis dataKey="t_min" type="number" domain={[0, 'dataMax']} {...axisProps} tickFormatter={(v: number) => `${fmt(v, 0)}`} unit=" min" />
-            <YAxis {...axisProps} width={56} tickFormatter={(v: number) => fmt(v, 0)} unit=" bar" />
-            <Tooltip content={<ChartTooltip timeline={timeline} />} />
-            <Line type="linear" dataKey="pressure_barg" stroke={INK.line} strokeWidth={2} dot={<Dot />} activeDot={{ r: 4 }} isAnimationActive={false} />
+          <LineChart data={timeline} margin={CHART_MARGIN}>
+            <CartesianGrid {...gridProps} />
+            <XAxis dataKey="t_min" type="number" domain={[0, 'dataMax']} {...axisProps} tickFormatter={(v: number) => fmt(v, 0)} />
+            <YAxis {...yAxisProps} tickFormatter={(v: number) => fmt(v, 0)} />
+            <Tooltip content={<PressureTooltip timeline={timeline} />} cursor={cursorProps} isAnimationActive={false} />
+            <Line dataKey="pressure_barg" {...lineProps(DATA_VESSEL, 'vessel')} dot={<MeasuredDot />} />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      {caption && <p className="mt-1 text-[11px] text-slate-500">{caption}</p>}
-      {measured && (
-        <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500">
-          <span className="inline-block size-2 rounded-full" style={{ background: INK.measured }} /> end of a hold with a measured pressure (hover for the leak rate)
-        </p>
-      )}
+      </ChartFrame>
     </Panel>
   )
 }

@@ -44,7 +44,7 @@ export function WallFields({ wall, onChange }: { wall: WallSpec; onChange: (w: W
           min={0.1}
           max={2000}
           digits={1}
-          hint="Steel ≈ 200, aluminium ≈ 70"
+          title="Steel ≈ 200, aluminium ≈ 70"
           onChange={(v) => set({ youngsModulusGpa: v })}
         />
         <NumberField label="Poisson's ratio" value={wall.poisson} min={0} max={0.49} digits={2} onChange={(v) => set({ poisson: v })} />

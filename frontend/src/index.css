@@ -1,11 +1,89 @@
 @import 'tailwindcss';
 
+/*
+ * Design tokens. DESIGN.md is the source of truth; keep the two in step.
+ * Components use the role utilities (bg-surface, text-muted, border-rule, ...), never hue names or hex values.
+ * A dark theme overrides these variables later; components do not change.
+ * `static` keeps every variable in the output, including ones only read from SVG and charts (var(--color-data-vessel)).
+ */
+@theme static {
+  /* Surfaces and ink */
+  --color-bg: #e9eae6;
+  --color-surface: #f6f6f3;
+  --color-inset: #ffffff;
+  --color-ink: #15171a;
+  --color-muted: #5c6166;
+  --color-rule: #c6c8c3;
+  --color-rule-strong: #82868a;
+
+  /* Accent: interactive elements and focus only */
+  --color-accent: #2350a0;
+  --color-accent-hover: #1b4085;
+  --color-accent-tint: #e3eaf6;
+  --color-on-accent: #ffffff;
+
+  /* Status: state only. Mark = lamps, bars, reference marks; ink = text; tint = callout background */
+  --color-ok: #2e7d32;
+  --color-ok-ink: #256b29;
+  --color-ok-tint: #e6f0e6;
+  --color-warn: #b7791f;
+  --color-warn-ink: #8a5a12;
+  --color-warn-tint: #f7eedd;
+  --color-crit: #c62828;
+  --color-crit-ink: #b02222;
+  --color-crit-tint: #f8e5e4;
+
+  /* Data series: fixed meaning per slot (see DESIGN.md) */
+  --color-data-vessel: #00939f;
+  --color-data-1: #8c4bc9;
+  --color-data-2: #b8612a;
+  --color-data-3: #c93e8e;
+  --color-data-4: #7f8c1a;
+  --color-data-5: #5b6bd6;
+  --color-data-other: #5c6166;
+
+  /* Type */
+  --font-sans: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --text-label: 11px;
+  --text-label--line-height: 14px;
+  --text-label--letter-spacing: 0.06em;
+  --text-small: 12px;
+  --text-small--line-height: 16px;
+  --text-body: 13px;
+  --text-body--line-height: 18px;
+  --text-readout-sm: 16px;
+  --text-readout-sm--line-height: 20px;
+  --text-readout: 28px;
+  --text-readout--line-height: 32px;
+
+  /* Shape and depth */
+  --radius-control: 2px;
+  --shadow-raised: 0 6px 24px rgb(21 23 26 / 0.18), 0 1px 3px rgb(21 23 26 / 0.12);
+}
+
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: light;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
   margin: 0;
-  background: #f1f5f9;
+  background: var(--color-bg);
+}
+
+/* Native checkboxes and radios pick up the accent. */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--color-accent);
+}
+
+/* One focus ring for every control reached by keyboard. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }

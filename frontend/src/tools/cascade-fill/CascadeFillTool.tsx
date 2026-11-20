@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useEffect, useState } from 'react'
+import { ToolLayout } from '../../shared/ToolLayout'
 import { api, equipmentPayload, scenarioPayload } from './api'
 import { CampaignPanel } from './components/CampaignPanel'
 import { CopvCard } from './components/CopvCard'
@@ -20,11 +21,9 @@ import { PoolPanel, SourceVisual } from './components/PoolPanel'
 import { ResultsPanel } from './components/ResultsPanel'
 import { SequenceLane } from './components/SequenceLane'
 import { Sidebar, TemplateVisual } from './components/Sidebar'
-import { TopBar } from './components/TopBar'
+import { CascadeControls, CascadeFileActions } from './components/TopBar'
 import { collisionDetection, POOL_ZONE, SEQUENCE_ZONE, type DragData } from './dnd'
-import { SOURCE_REF_TEMP_C } from './format'
 import { defaultPumpSource, parallelCount, useStore } from './store'
-import type { MetaResponse } from './types'
 
 /** Re-simulates the manual sequence shortly after any input changes. */
 function useAutoSimulate() {
@@ -75,39 +74,16 @@ function DragPreview({ data }: { data: DragData }) {
       body = source ? (
         <SourceVisual source={source} />
       ) : (
-        <span className="flex items-center gap-1 text-sm font-semibold text-cyan-800">
+        <span className="flex items-center gap-1 text-body font-semibold text-ink">
           <CooldownIcon className="size-4" /> Cool-down
         </span>
       )
     }
   }
-  return <div className="w-60 cursor-grabbing rounded-xl bg-white p-3 shadow-xl ring-2 ring-sky-400">{body}</div>
+  return <div className="w-60 cursor-grabbing bg-inset p-3 shadow-raised ring-1 ring-accent">{body}</div>
 }
 
-function Footer() {
-  const [meta, setMeta] = useState<MetaResponse | null>(null)
-  const [offline, setOffline] = useState(false)
-  useEffect(() => {
-    api.meta().then(setMeta, () => setOffline(true))
-  }, [])
-  return (
-    <footer className="px-1 pb-2 text-[11px] text-slate-500">
-      {offline && <p className="mb-1 font-medium text-rose-700">Backend not reachable. Start it with: python run.py (in backend/).</p>}
-      {meta && (
-        <p>
-          CoolProp {meta.coolprop_version} · {meta.backend} backend · equations of state:{' '}
-          {meta.fluids.map((f) => `${f.name} ${f.eos}`).join(', ')}.
-        </p>
-      )}
-      <p>
-        Pressures are gauge (barg). Source pressures are quoted at {SOURCE_REF_TEMP_C} °C; the COPV target is the settled pressure at
-        ambient. All temperatures are gas temperatures; strain heating of the composite is not modelled.
-      </p>
-    </footer>
-  )
-}
-
-/** The COPV Cascade Fill tool: inventory, fill sequence, optimizer, campaign and results. */
+/** The COPV Fill tool (cascade fill method): inventory, fill sequence, optimizer, campaign and results. */
 export function CascadeFillTool() {
   useAutoSimulate()
   const view = useStore((s) => s.view)
@@ -157,22 +133,15 @@ export function CascadeFillTool() {
 
   return (
     <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
-      <div className="flex flex-1 flex-col">
-        <TopBar />
-        <div className="flex flex-1 flex-col lg:flex-row">
-          <Sidebar />
-          <main className="flex min-w-0 flex-1 flex-col gap-4 p-4">
-            <PoolPanel />
-            <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-stretch">
-              <div className="min-w-0 flex-1">{view === 'manual' ? <SequenceLane /> : <OptimizerPanel />}</div>
-              <CopvCard />
-            </div>
-            <CampaignPanel />
-            {view === 'manual' && <ResultsPanel />}
-            <Footer />
-          </main>
+      <ToolLayout name="COPV Fill" controls={<CascadeControls />} actions={<CascadeFileActions />} inputs={<Sidebar />}>
+        <PoolPanel />
+        <div className="flex flex-col 2xl:flex-row 2xl:items-stretch">
+          <div className="min-w-0 flex-1 2xl:border-b 2xl:border-rule 2xl:bg-surface 2xl:[&>section]:border-b-0">{view === 'manual' ? <SequenceLane /> : <OptimizerPanel />}</div>
+          <CopvCard />
         </div>
-      </div>
+        <CampaignPanel />
+        {view === 'manual' && <ResultsPanel />}
+      </ToolLayout>
       <Editors />
       <DragOverlay dropAnimation={null}>{dragging && <DragPreview data={dragging} />}</DragOverlay>
     </DndContext>

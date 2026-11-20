@@ -97,7 +97,7 @@ def gas_test(req: GasTestRequest) -> GasTestResponse:
     notes.insert(0, critical(f"Pneumatic test: the vessel stores up to {energy_text(totals.peak_energy_kj)} "
                              f"({tnt_mass(totals.peak_energy_kj * 1e3):.3g} kg TNT), far more than a hydrostatic test at the "
                              "same pressure. Keep people out of the test area while it is pressurised."))
-    notes.append(assumption("Bundle counts are rough: they assume part-used bundles keep being used. Use the COPV Cascade Fill "
+    notes.append(assumption("Bundle counts are rough: they assume part-used bundles keep being used. Use the COPV Fill "
                       "tab for an actual cascade plan."))
     notes.append(assumption("Targets are settled pressures at the test temperature; fill heating and vent cooling are not "
                       "modelled."))

@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { Button } from './ui'
 
 /**
  * Saving a tool's inputs to a file and loading them back, so a test setup can be reused. Fully offline: the browser
@@ -20,9 +21,40 @@ export function downloadJson(filename: string, data: unknown) {
   URL.revokeObjectURL(a.href)
 }
 
-const btn = 'rounded-md px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200 hover:bg-white hover:text-slate-900'
+/** Export · Import · Reset buttons, always in this order at the right of the tool bar. Reset asks first. */
+export function FileActions({ onExport, onImport, resetPrompt, onReset, exportTitle = 'Save these inputs to a file' }: {
+  onExport: () => void
+  onImport: (file: File) => void
+  resetPrompt: string
+  onReset: () => void
+  exportTitle?: string
+}) {
+  const file = useRef<HTMLInputElement>(null)
+  return (
+    <div className="flex gap-1.5">
+      <Button onClick={onExport} title={exportTitle}>
+        Export
+      </Button>
+      <Button onClick={() => file.current?.click()} title="Load inputs saved with Export">
+        Import
+      </Button>
+      <Button onClick={() => confirm(resetPrompt) && onReset()}>Reset</Button>
+      <input
+        ref={file}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) onImport(f)
+          e.target.value = ''
+        }}
+      />
+    </div>
+  )
+}
 
-/** Export · Import · Reset for a tool's inputs; Reset asks first. */
+/** File actions for a calculator tool whose inputs are one object saved as { tool, saved, inputs }. */
 export function ToolActions({ tool, title, inputs, onImport, onReset }: {
   tool: string
   title: string
@@ -30,7 +62,6 @@ export function ToolActions({ tool, title, inputs, onImport, onReset }: {
   onImport: (inputs: unknown) => void
   onReset: () => void
 }) {
-  const file = useRef<HTMLInputElement>(null)
   const exportInputs = () => {
     const day = new Date().toISOString().slice(0, 10)
     downloadJson(`${tool}-${day}.json`, { tool, saved: new Date().toISOString(), inputs } satisfies SavedInputs)
@@ -46,31 +77,5 @@ export function ToolActions({ tool, title, inputs, onImport, onReset }: {
       alert(`Could not import: ${(e as Error).message}`)
     }
   }
-  return (
-    <div className="flex items-center justify-between gap-2 px-1">
-      <span className="text-sm font-semibold text-slate-700">{title}</span>
-      <div className="flex gap-1.5">
-        <button type="button" className={btn} onClick={exportInputs} title="Save these inputs to a file">
-          Export
-        </button>
-        <button type="button" className={btn} onClick={() => file.current?.click()} title="Load inputs saved with Export">
-          Import
-        </button>
-        <button type="button" className={btn} onClick={() => confirm(`Reset all ${title} inputs to the defaults?`) && onReset()}>
-          Reset
-        </button>
-      </div>
-      <input
-        ref={file}
-        type="file"
-        accept="application/json,.json"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (f) importFile(f)
-          e.target.value = ''
-        }}
-      />
-    </div>
-  )
+  return <FileActions onExport={exportInputs} onImport={importFile} resetPrompt={`Reset all ${title} inputs to the defaults?`} onReset={onReset} />
 }

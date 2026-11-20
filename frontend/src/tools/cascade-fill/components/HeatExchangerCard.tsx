@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import type { HeatExchanger, HxPreview } from '../types'
 import { HeatExchangerIcon } from './icons'
 import { Group, Modal, Switch } from './Modal'
-import { NumberField, Segmented } from '../../../shared/ui'
+import { Button, NumberField, Segmented } from '../../../shared/ui'
 
 function OutletCheck() {
   const hx = useStore((s) => s.heatExchanger)
@@ -35,16 +35,16 @@ function OutletCheck() {
   }, [fluid, ambient, hx, inletC, pressure])
 
   return (
-    <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
-      <div className="mb-2 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Outlet check ({fluid})</div>
+    <div className="bg-surface p-3 ring-1 ring-rule">
+      <div className="mb-2 text-small font-semibold tracking-wide text-muted uppercase">Outlet check ({fluid})</div>
       <div className="grid grid-cols-2 gap-2">
         <NumberField label="Gas in" value={inletC} onChange={setInletC} min={-200} max={1000} unit="°C" />
         <NumberField label="Line pressure" value={pressure} onChange={setPressure} min={0} max={1000} unit="barg" />
       </div>
-      {error && <p className="mt-2 text-xs text-rose-700">{error}</p>}
+      {error && <p className="mt-2 text-small text-crit-ink">{error}</p>}
       {preview && !error && (
-        <div className="mt-2 text-xs text-slate-700 tabular-nums">
-          Gas out <b className="text-slate-900">{fmt(preview.outlet_temp_c)} °C</b> · {preview.duty_kj_per_kg >= 0 ? 'removes' : 'adds'}{' '}
+        <div className="mt-2 text-small text-ink tabular-nums">
+          Gas out <b className="text-ink">{fmt(preview.outlet_temp_c)} °C</b> · {preview.duty_kj_per_kg >= 0 ? 'removes' : 'adds'}{' '}
           {fmt(Math.abs(preview.duty_kj_per_kg))} kJ/kg
           {preview.chiller_kj_per_kg > 0 && <> · chiller ≥ {fmt(preview.chiller_kj_per_kg)} kJ/kg</>}
         </div>
@@ -62,21 +62,21 @@ export function HeatExchangerCard() {
     <Modal
       title="Heat exchanger"
       subtitle="In the fill line, just before the COPV (after valves and pumps)"
-      icon={<HeatExchangerIcon className="size-9 text-teal-600" />}
+      icon={<HeatExchangerIcon className="size-9 text-ink" />}
       footer={
-        <button type="button" onClick={() => set(DEFAULT_HX)} className="text-xs text-slate-500 hover:text-slate-800">
+        <Button variant="quiet" onClick={() => set(DEFAULT_HX)}>
           Reset to defaults
-        </button>
+        </Button>
       }
     >
-      <label className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200">
+      <label className="flex items-center justify-between gap-3 bg-surface px-3 py-2 text-body text-ink ring-1 ring-rule">
         Installed in the fill line
         <Switch checked={hx.installed} onChange={(installed) => set({ installed })} label="Heat exchanger installed" />
       </label>
-      {isothermal && <p className="text-xs text-amber-800">No effect in the isothermal model: the COPV stays at ambient there anyway.</p>}
+      {isothermal && <p className="text-small text-warn-ink">No effect in the isothermal model: the COPV stays at ambient there anyway.</p>}
 
       <div className="flex flex-col gap-1">
-        <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Control</span>
+        <span className="text-small font-semibold tracking-wide text-muted uppercase">Control</span>
         <Segmented<HeatExchanger['control']>
           label="Control"
           value={hx.control}
@@ -89,17 +89,17 @@ export function HeatExchangerCard() {
       </div>
 
       {hx.control === 'outlet_temp' ? (
-        <Group title="Gas exit" note="Ideal control: the gas always leaves at this temperature, whatever comes in.">
+        <Group title="Gas exit" note="Ideal control: the gas always leaves at this temperature, whatever comes in. The default heats the gas back to 20 °C after it cools through the valves (Joule-Thomson cooling, nitrogen).">
           <NumberField className="col-span-2" label="Gas exit temperature" value={hx.outletTempC} onChange={(outletTempC) => set({ outletTempC })} min={-200} max={300} unit="°C" />
         </Group>
       ) : (
-        <Group title="Coolant" note="Gas exit = gas in − effectiveness × (gas in − coolant). Coolant at ambient acts as an air or water cooler.">
-          <NumberField label="Coolant temperature" value={hx.coolantTempC} onChange={(coolantTempC) => set({ coolantTempC })} min={-200} max={300} unit="°C" />
+        <Group title="Heating medium" note="Gas exit = gas in − effectiveness × (gas in − medium). A medium at ambient warms gas that cooled through the valves and cools hot gas from a pump.">
+          <NumberField label="Medium temperature" value={hx.coolantTempC} onChange={(coolantTempC) => set({ coolantTempC })} min={-200} max={300} unit="°C" />
           <NumberField label="Effectiveness" value={hx.effectivenessPct} onChange={(effectivenessPct) => set({ effectivenessPct })} min={1} max={100} unit="%" digits={0} />
         </Group>
       )}
 
-      <p className="text-[11px] text-slate-500">
+      <p className="text-small text-muted">
         In a fast fill most of the COPV heating happens inside the vessel, as incoming gas compresses the gas already there. Cold inlet gas
         lowers it but cannot remove it: filling from empty, the gas ends near γ × inlet temperature (γ ≈ 1.67 for helium, 1.4 for nitrogen).
       </p>

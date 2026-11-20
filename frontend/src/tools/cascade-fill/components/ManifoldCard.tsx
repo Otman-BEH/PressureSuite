@@ -12,10 +12,10 @@ export function ManifoldCard() {
     <Modal
       title="Manifold"
       subtitle="Splits the fill line between several COPVs filled together"
-      icon={<ManifoldIcon className="size-9 text-slate-700" />}
+      icon={<ManifoldIcon className="size-9 text-ink" />}
       footer={<span />}
     >
-      <label className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200">
+      <label className="flex items-center justify-between gap-3 bg-surface px-3 py-2 text-body text-ink ring-1 ring-rule">
         Installed (fill COPVs in parallel)
         <Switch checked={manifold.installed} onChange={(installed) => set({ installed })} label="Manifold installed" />
       </label>

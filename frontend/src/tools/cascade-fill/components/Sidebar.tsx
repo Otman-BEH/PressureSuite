@@ -5,7 +5,7 @@ import { copvsDone, defaultPumpSource, useStore } from '../store'
 import type { EditorKind, HistoryEntry } from '../types'
 import { isMachine, type DragData, type TemplateKind } from '../dnd'
 import { BoosterIcon, BottleIcon, BundleIcon, CompressorIcon, CooldownIcon, HeatExchangerIcon, ManifoldIcon, PlusIcon } from './icons'
-import { Switch } from './Modal'
+import { Button, Panel, Switch } from '../../../shared/ui'
 
 export function TemplateVisual({ kind }: { kind: TemplateKind }) {
   const fluid = useStore((s) => s.copv.fluid)
@@ -14,23 +14,23 @@ export function TemplateVisual({ kind }: { kind: TemplateKind }) {
   const machineDetail = (k: 'booster' | 'compressor') =>
     `In ${fmt(equipment[k].inletMinBarg, 0)}–${fmt(equipment[k].inletMaxBarg, 0)} → out ≤ ${fmt(equipment[k].outletMaxBarg, 0)} barg`
   const info = {
-    bundle: { title: 'Bundle', detail: `12 × 50 L · ${FLUIDS[fluid].short} ${p} barg`, icon: <BundleIcon className="h-9 w-9 text-slate-600" /> },
-    bottle: { title: 'Single bottle', detail: `50 L · ${FLUIDS[fluid].short} ${p} barg`, icon: <BottleIcon className="h-9 w-6 text-slate-600" /> },
-    cooldown: { title: 'Cool-down', detail: 'Wait until everything is back at ambient', icon: <CooldownIcon className="size-7 text-cyan-600" /> },
+    bundle: { title: 'Bundle', detail: `12 × 50 L · ${FLUIDS[fluid].short} ${p} barg`, icon: <BundleIcon className="h-9 w-9 text-muted" /> },
+    bottle: { title: 'Single bottle', detail: `50 L · ${FLUIDS[fluid].short} ${p} barg`, icon: <BottleIcon className="h-9 w-6 text-muted" /> },
+    cooldown: { title: 'Cool-down', detail: 'Wait until everything is back at ambient', icon: <CooldownIcon className="size-7 text-ink" /> },
     bundle_manifold: {
       title: 'Bundle manifold',
       detail: 'Open several bundles together as one source',
-      icon: <ManifoldIcon className="size-8 -scale-x-100 text-slate-700" />,
+      icon: <ManifoldIcon className="size-8 -scale-x-100 text-ink" />,
     },
-    booster: { title: MACHINES.booster.name, detail: machineDetail('booster'), icon: <BoosterIcon className="size-8 text-amber-600" /> },
-    compressor: { title: MACHINES.compressor.name, detail: machineDetail('compressor'), icon: <CompressorIcon className="size-8 text-amber-700" /> },
+    booster: { title: MACHINES.booster.name, detail: machineDetail('booster'), icon: <BoosterIcon className="size-8 text-ink" /> },
+    compressor: { title: MACHINES.compressor.name, detail: machineDetail('compressor'), icon: <CompressorIcon className="size-8 text-warn-ink" /> },
   }[kind]
   return (
     <div className="flex items-center gap-3">
       <div className="grid w-9 place-items-center">{info.icon}</div>
       <div className="min-w-0">
-        <div className="text-sm font-medium text-slate-800">{info.title}</div>
-        <div className="text-[11px] text-slate-500">{info.detail}</div>
+        <div className="text-body font-medium text-ink">{info.title}</div>
+        <div className="text-small text-muted">{info.detail}</div>
       </div>
     </div>
   )
@@ -55,7 +55,7 @@ function TemplateTile({ kind }: { kind: TemplateKind }) {
       {...listeners}
       onClick={machine ? () => useStore.getState().openEditor(kind) : undefined}
       title={machine ? 'Click to edit its properties, drag into the sequence to use it' : undefined}
-      className={`group flex cursor-grab items-center justify-between gap-2 rounded-lg bg-white p-2.5 ring-1 ring-slate-200 hover:ring-sky-400 active:cursor-grabbing ${
+      className={`group flex cursor-grab items-center justify-between gap-2 border-b border-rule px-3 py-2 last:border-b-0 hover:bg-inset active:cursor-grabbing ${
         isDragging ? 'opacity-40' : ''
       }`}
     >
@@ -70,7 +70,7 @@ function TemplateTile({ kind }: { kind: TemplateKind }) {
           }}
           title={kind === 'bundle' || kind === 'bottle' ? 'Add to the gas inventory' : 'Append to the fill sequence'}
           aria-label={kind === 'bundle' || kind === 'bottle' ? `Add ${kind} to inventory` : `Append ${kind} to sequence`}
-          className="grid size-7 place-items-center rounded-md text-slate-400 ring-1 ring-slate-200 hover:bg-sky-50 hover:text-sky-700"
+          className="grid size-7 place-items-center rounded-control text-muted ring-1 ring-rule hover:bg-accent-tint hover:text-accent"
         >
           <PlusIcon className="size-4" />
         </button>
@@ -96,13 +96,13 @@ function SwitchTile({ editor, icon, title, detail, installed, onToggle }: {
       onClick={() => openEditor(editor)}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openEditor(editor)}
       title="Click to edit its properties"
-      className="group flex cursor-pointer items-center justify-between gap-2 rounded-lg bg-white p-2.5 ring-1 ring-slate-200 hover:ring-sky-400"
+      className="group flex cursor-pointer items-center justify-between gap-2 border-b border-rule px-3 py-2 last:border-b-0 hover:bg-inset"
     >
       <div className="flex items-center gap-3">
         <div className={`grid w-9 place-items-center ${installed ? '' : 'opacity-50'}`}>{icon}</div>
         <div className="min-w-0">
-          <div className="text-sm font-medium text-slate-800">{title}</div>
-          <div className="text-[11px] text-slate-500">{detail}</div>
+          <div className="text-body font-medium text-ink">{title}</div>
+          <div className="text-small text-muted">{detail}</div>
         </div>
       </div>
       <Switch checked={installed} onChange={onToggle} label={`${title} installed`} />
@@ -116,7 +116,7 @@ function HeatExchangerTile() {
   return (
     <SwitchTile
       editor="hx"
-      icon={<HeatExchangerIcon className="size-8 text-teal-600" />}
+      icon={<HeatExchangerIcon className="size-8 text-ink" />}
       title="Heat exchanger"
       detail={hx.installed ? detail : 'Not in the fill line'}
       installed={hx.installed}
@@ -130,7 +130,7 @@ function ManifoldTile() {
   return (
     <SwitchTile
       editor="manifold"
-      icon={<ManifoldIcon className="size-8 text-slate-700" />}
+      icon={<ManifoldIcon className="size-8 text-ink" />}
       title="Manifold"
       detail={manifold.installed ? `${manifold.outlets} COPVs filled in parallel` : 'One COPV at a time'}
       installed={manifold.installed}
@@ -150,26 +150,26 @@ function FillHistory() {
   const history = useStore((s) => s.history)
   const undo = useStore((s) => s.undoLastFill)
   if (!history.length)
-    return <p className="text-xs text-slate-500">Completed fills appear here. Use “Fill next COPV” in the results to carry the leftover gas into the next fill.</p>
+    return <p className="text-small text-muted">Completed fills appear here. Use “Fill next COPV” in the results to carry the leftover gas into the next fill.</p>
   return (
     <ol className="flex flex-col gap-2">
       {history.map((h, i) => (
-        <li key={h.id} className="rounded-lg bg-white p-2.5 text-xs ring-1 ring-slate-200">
+        <li key={h.id} className="bg-inset p-2.5 text-small ring-1 ring-rule">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-semibold text-slate-800">{historyLabel(history, i)}</span>
+            <span className="font-semibold text-ink">{historyLabel(history, i)}</span>
             {i === 0 && (
-              <button type="button" onClick={undo} className="text-[11px] text-sky-700 hover:underline">
+              <Button variant="quiet" onClick={undo}>
                 Undo
-              </button>
+              </Button>
             )}
           </div>
-          <div className="mt-1 text-slate-600 tabular-nums">
+          <div className="mt-1 text-muted tabular-nums">
             {fmt(h.settledBarg)} / {fmt(h.targetBarg, 0)} barg settled {h.reached ? '✓' : '(short)'}
           </div>
-          <div className="text-slate-500">
-            {FLUIDS[h.fluid].short} · {fmt(h.deliveredKg, 2)} kg · {fmt(h.wastedKj, 0)} kJ wasted
+          <div className="text-muted">
+            {FLUIDS[h.fluid].short} · {fmt(h.deliveredKg, 2)} kg
           </div>
-          <div className="mt-1 truncate text-slate-400" title={h.steps.join(' → ')}>
+          <div className="mt-1 truncate text-muted" title={h.steps.join(' → ')}>
             {h.steps.join(' → ')}
           </div>
         </li>
@@ -180,27 +180,26 @@ function FillHistory() {
 
 export function Sidebar() {
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-5 border-slate-200 bg-slate-50 p-4 lg:w-64 lg:border-r">
-      <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Components</h2>
-        <p className="text-[11px] text-slate-500">Drag into the gas inventory, or straight into the fill sequence.</p>
-        <TemplateTile kind="bundle" />
-        <TemplateTile kind="bottle" />
-        <TemplateTile kind="bundle_manifold" />
-        <TemplateTile kind="cooldown" />
-      </section>
-      <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Equipment</h2>
-        <p className="text-[11px] text-slate-500">Click to edit. Drag a pump into the sequence; switch the rest in or out.</p>
-        <TemplateTile kind="booster" />
-        <TemplateTile kind="compressor" />
-        <HeatExchangerTile />
-        <ManifoldTile />
-      </section>
-      <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Fill history</h2>
+    <>
+      <Panel title={<span title="Drag into the gas inventory, or straight into the fill sequence.">Components</span>}>
+        <div className="-m-3 flex flex-col">
+          <TemplateTile kind="bundle" />
+          <TemplateTile kind="bottle" />
+          <TemplateTile kind="bundle_manifold" />
+          <TemplateTile kind="cooldown" />
+        </div>
+      </Panel>
+      <Panel title={<span title="Click to edit. Drag a pump into the sequence; switch the rest in or out.">Equipment</span>}>
+        <div className="-m-3 flex flex-col">
+          <TemplateTile kind="booster" />
+          <TemplateTile kind="compressor" />
+          <HeatExchangerTile />
+          <ManifoldTile />
+        </div>
+      </Panel>
+      <Panel title="Fill history">
         <FillHistory />
-      </section>
-    </aside>
+      </Panel>
+    </>
   )
 }

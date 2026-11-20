@@ -1,9 +1,10 @@
 import { PressureTimeChart } from '../../shared/cycles'
 import { ToolActions } from '../../shared/files'
-import { fmt, fmtEnergy, fmtMin, fmtP, fmtSig } from '../../shared/format'
+import { ToolLayout } from '../../shared/ToolLayout'
+import { energyParts, fmt, fmtEnergy, fmtMin, fmtP, fmtSig } from '../../shared/format'
 import { LeakPanel } from '../../shared/leak'
 import { CycleTable, ExpansionPanel, RatesPanel, Sub, type ResultColumn } from '../../shared/testTool'
-import { Assumptions, LinkButton, Notes, NumberField, Panel, SelectField, Stat } from '../../shared/ui'
+import { Assumptions, LinkButton, Notes, NumberField, Panel, Readout, ReadoutRow, SelectField } from '../../shared/ui'
 import { useCalculation } from '../../shared/useCalculation'
 import { useStore as useCascade } from '../cascade-fill/store'
 import { openInStoredEnergy } from '../stored-energy/store'
@@ -23,10 +24,9 @@ const GASES: { value: GasFluid; label: string }[] = [
 
 function InputsPanel() {
   const inputs = useStore((s) => s.inputs)
-  const { set, setLeak, setSupply, load, reset } = useStore.getState()
+  const { set, setLeak, setSupply } = useStore.getState()
   return (
-    <div className="flex flex-col gap-4">
-      <ToolActions tool="gas-test" title="Gas Test" inputs={inputs} onImport={load} onReset={reset} />
+    <>
       <Panel title="Vessel and test gas">
         <div className="flex flex-col gap-3">
           <SelectField label="Test gas" value={inputs.fluid} onChange={(fluid) => set({ fluid })} options={GASES} />
@@ -47,7 +47,7 @@ function InputsPanel() {
             min={1}
             max={100_000}
             digits={0}
-            hint="e.g. 12 × 50 L = 600 L"
+            title="e.g. 12 × 50 L = 600 L"
             onChange={(bundleVolumeL) => setSupply({ bundleVolumeL })}
           />
           <NumberField
@@ -57,7 +57,7 @@ function InputsPanel() {
             min={1}
             max={1000}
             digits={0}
-            hint="N₂ 300, He 200; set when you pick the gas"
+            title="N₂ 300, He 200; set when you pick the gas"
             onChange={(bundlePressureBarg) => setSupply({ bundlePressureBarg })}
           />
           <NumberField
@@ -68,7 +68,7 @@ function InputsPanel() {
             min={0}
             max={1000}
             digits={0}
-            hint="Lowest pressure a booster can draw a bundle down to"
+            title="Lowest pressure a booster can draw a bundle down to"
             onChange={(residualBarg) => setSupply({ residualBarg })}
           />
         </div>
@@ -85,14 +85,14 @@ function InputsPanel() {
         settings={inputs.leak}
         onChange={setLeak}
       />
-    </div>
+    </>
   )
 }
 
-/** Sets up the Cascade Fill tab to fill this vessel to the test pressure, then opens it. */
+/** Sets up the COPV Fill tab to fill this vessel to the test pressure, then opens it. */
 function planInCascadeFill(inputs: Inputs, testPressure: number) {
   if (inputs.fluid !== 'Nitrogen' && inputs.fluid !== 'Helium') return
-  if (!confirm(`Set the Cascade Fill target to this vessel (${fmtSig(inputs.volumeL)} L ${inputs.fluid}, 0 → ${fmtP(testPressure)} barg at ${fmtP(inputs.tempC, 1)} °C)? This replaces the current target COPV there.`)) return
+  if (!confirm(`Set the COPV Fill target to this vessel (${fmtSig(inputs.volumeL)} L ${inputs.fluid}, 0 → ${fmtP(testPressure)} barg at ${fmtP(inputs.tempC, 1)} °C)? This replaces the current target COPV there.`)) return
   const cascade = useCascade.getState()
   cascade.setCopv({ fluid: inputs.fluid, volumeL: inputs.volumeL, targetBarg: testPressure, initialBarg: 0 })
   cascade.setAmbient(Math.min(80, Math.max(-60, inputs.tempC)))
@@ -109,7 +109,7 @@ function SummaryPanel({ result, loading }: { result: GasTestResponse; loading: b
       title="Summary"
       aside={
         <div className="flex flex-wrap items-center gap-2">
-          {loading && <span className="text-[11px] text-slate-400">Updating…</span>}
+          {loading && <span className="text-small text-muted">Updating…</span>}
           <LinkButton
             title="Open this vessel, full at the test pressure, in the Stored Energy tab"
             onClick={() =>
@@ -120,35 +120,36 @@ function SummaryPanel({ result, loading }: { result: GasTestResponse; loading: b
           </LinkButton>
           <LinkButton
             disabled={!cascadeGas}
-            title={cascadeGas ? 'Plan the actual bundle cascade for one fill to the test pressure' : 'Cascade Fill handles nitrogen and helium only'}
+            title={cascadeGas ? 'Plan the actual bundle cascade for one fill to the test pressure' : 'COPV Fill handles nitrogen and helium only'}
             onClick={() => planInCascadeFill(inputs, t.test_pressure_barg)}
           >
-            Plan the fill in Cascade Fill →
+            Plan the fill in COPV Fill →
           </LinkButton>
         </div>
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat strong label="Test pressure" value={`${fmtP(t.test_pressure_barg)} barg`} sub="highest cycle target" />
-          <Stat strong label="Gas needed" value={`${fmtSig(t.used_kg)} kg`} sub={`${fmtSig(t.used_nm3)} Nm³ (0 °C, 1 atm)`} />
-          <Stat strong label="Test duration" value={fmtMin(t.duration_min)} sub={`${fmt(t.cycle_count, 0)} cycle${t.cycle_count === 1 ? '' : 's'}`} />
-          <Stat strong label="Max stored energy" value={fmtEnergy(t.peak_energy_kj)} sub={`${fmtSig(t.peak_energy_kj / 4184)} kg TNT`} />
-        </div>
-        <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3 sm:grid-cols-4">
-          <Stat
+        <ReadoutRow>
+          <Readout size="lg" label="Test pressure" value={fmtP(t.test_pressure_barg)} unit="barg" sub="highest cycle target" />
+          <Readout size="lg" label="Gas needed" value={fmtSig(t.used_kg)} unit="kg" sub={`${fmtSig(t.used_nm3)} Nm³ (0 °C, 1 atm)`} />
+          <Readout size="lg" label="Test duration" value={fmtMin(t.duration_min)} sub={`${fmt(t.cycle_count, 0)} cycle${t.cycle_count === 1 ? '' : 's'}`} />
+          <Readout size="lg" label="Max stored energy" value={energyParts(t.peak_energy_kj)[0]} unit={energyParts(t.peak_energy_kj)[1]} sub={`${fmtSig(t.peak_energy_kj / 4184)} kg TNT`} />
+        </ReadoutRow>
+        <ReadoutRow className="border-t border-rule pt-3 sm:grid-cols-4">
+          <Readout
             label={`${fmtP(s.bundle_pressure_barg)} barg bundles, decanting`}
             value={s.bundles_decant === null ? 'Booster needed' : `${s.bundles_decant}`}
             sub={s.decant_usable_kg !== null ? `${fmtSig(s.decant_usable_kg)} kg usable each` : 'bundles not above the test pressure'}
           />
-          <Stat label="Bundles with a booster" value={`${s.bundles_booster}`} sub={`${fmtSig(s.booster_usable_kg)} kg usable each, down to ${fmtP(inputs.supply.residualBarg)} barg`} />
-          <Stat label="Full bundle" value={`${fmtSig(s.bundle_contents_kg)} kg`} sub={`${fmtSig(s.bundle_contents_nm3)} Nm³ in ${fmt(s.bundle_volume_l, 0)} L`} />
-          <Stat
+          <Readout label="Bundles with a booster" value={`${s.bundles_booster}`} sub={`${fmtSig(s.booster_usable_kg)} kg usable each, down to ${fmtP(inputs.supply.residualBarg)} barg`} />
+          <Readout label="Full bundle" value={fmtSig(s.bundle_contents_kg)} unit="kg" sub={`${fmtSig(s.bundle_contents_nm3)} Nm³ in ${fmt(s.bundle_volume_l, 0)} L`} />
+          <Readout
             label="Vented / left in vessel"
-            value={`${fmtSig(t.vented_kg)} / ${fmtSig(t.left_in_vessel_kg)} kg`}
+            value={`${fmtSig(t.vented_kg)} / ${fmtSig(t.left_in_vessel_kg)}`}
+            unit="kg"
             sub={t.leaked_kg > 0 ? `${fmtSig(t.leaked_kg * 1e3)} g lost in measured holds` : undefined}
           />
-        </div>
+        </ReadoutRow>
       </div>
     </Panel>
   )
@@ -195,14 +196,14 @@ export function GasTestTool() {
   const { result, error, loading } = useCalculation(key, (signal) => api.calculate(inputs, signal))
   const passes = result ? result.totals.cycle_count / inputs.cycles.length : 1
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start">
-      <aside className="w-full shrink-0 lg:w-80">
-        <InputsPanel />
-      </aside>
-      <main className="flex min-w-0 flex-1 flex-col gap-4">
-        <Notes error={error} />
+    <ToolLayout
+      name="Gas Test"
+      actions={<ToolActions tool="gas-test" title="Gas Test" inputs={inputs} onImport={st.load} onReset={st.reset} />}
+      inputs={<InputsPanel />}
+    >
+        <Notes error={error} className="px-3 py-2" />
         {result && <SummaryPanel result={result} loading={loading} />}
-        {result && <Notes notes={result.notes.filter((n) => n.level === 'critical')} />}
+        {result && <Notes notes={result.notes.filter((n) => n.level === 'critical')} className="px-3 py-2" />}
         <CycleTable<GasCycleOut>
           cycles={inputs.cycles}
           results={result?.cycles ?? null}
@@ -226,12 +227,8 @@ export function GasTestTool() {
             caption={passes > 1 ? `First two passes of ${fmt(passes, 0)}; totals cover all ${fmt(result.totals.cycle_count, 0)} cycles.` : undefined}
           />
         )}
-        {result && <Notes notes={result.notes.filter((n) => n.level !== 'critical')} />}
-        <footer className="flex flex-col gap-1 px-1 pb-2 text-[11px] text-slate-500">
-          {result && <Assumptions notes={result.notes} />}
-          <p>Gauge pressures are relative to 1 bar a. Stored energy uses the Stored Energy tool's real-gas calculation. Nm³ at 0 °C and 1 atm.</p>
-        </footer>
-      </main>
-    </div>
+        {result && <Notes notes={result.notes.filter((n) => n.level !== 'critical')} className="px-3 py-2" />}
+        {result && <Assumptions notes={result.notes} className="px-3 py-2" />}
+    </ToolLayout>
   )
 }

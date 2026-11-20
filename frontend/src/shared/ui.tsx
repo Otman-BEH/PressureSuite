@@ -1,6 +1,34 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
+/*
+ * Shared primitives. Every style here follows DESIGN.md; tools compose these rather than restyling them.
+ */
+
 const roundTo = (v: number, digits: number) => String(Math.round(v * 10 ** digits) / 10 ** digits)
+
+/** Uppercase, letter-spaced, muted: panel titles, field labels, table headers, readout labels. */
+export const LABEL = 'text-label font-medium uppercase text-muted'
+
+/** Table cell styles: header in the label style, figures mono and right-aligned, hairline row rules on the tbody. */
+export const TH = `px-2 py-1.5 text-left align-bottom whitespace-nowrap ${LABEL}`
+export const TD = 'px-2 py-1.5 text-right font-mono text-small whitespace-nowrap'
+export const THEAD = 'border-b border-rule-strong'
+export const TBODY = 'divide-y divide-rule'
+export const TFOOT = 'border-t border-rule-strong font-semibold'
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className={LABEL}>{children}</span>
+}
+
+/** The input well: inset, hairline border that turns into a 2px accent ring on focus. */
+const WELL =
+  'flex h-7 items-center rounded-control border border-rule-strong bg-inset focus-within:border-accent focus-within:ring-1 focus-within:ring-accent'
+const INPUT = 'h-full w-full min-w-0 bg-transparent px-2 font-mono text-body text-ink outline-none placeholder:text-muted'
+
+/** Unit set right-aligned at the end of the well, so units line up down a column of equal-width fields. */
+function Unit({ children }: { children: ReactNode }) {
+  return <span className="shrink-0 pr-2 pl-1 text-right font-mono text-small whitespace-nowrap text-muted">{children}</span>
+}
 
 interface NumberFieldProps {
   label?: ReactNode
@@ -13,12 +41,14 @@ interface NumberFieldProps {
   className?: string
   inputClassName?: string
   title?: string
-  /** Short visible explanation under the field. */
+  /** Short visible note under the field, only for what the label cannot say (e.g. "= 301 bar a"). */
   hint?: ReactNode
+  /** Right-align the value, for fields in a table column. */
+  alignRight?: boolean
 }
 
 /** Numeric input that lets you type freely and only commits values inside [min, max]. */
-export function NumberField({ label, value, onChange, min, max, unit, digits = 2, className = '', inputClassName = '', title, hint }: NumberFieldProps) {
+export function NumberField({ label, value, onChange, min, max, unit, digits = 2, className = '', inputClassName = '', title, hint, alignRight = false }: NumberFieldProps) {
   const [text, setText] = useState(roundTo(value, digits))
   const [editing, setEditing] = useState(false)
   useEffect(() => {
@@ -38,9 +68,9 @@ export function NumberField({ label, value, onChange, min, max, unit, digits = 2
   }
 
   return (
-    <label className={`flex flex-col gap-1 ${className}`} title={title}>
-      {label && <span className="text-[11px] font-medium text-slate-500">{label}</span>}
-      <span className="flex items-center rounded-md bg-white ring-1 ring-slate-300 focus-within:ring-2 focus-within:ring-sky-500">
+    <label className={`flex flex-col justify-end gap-1 ${className}`} title={title}>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      <span className={WELL}>
         <input
           inputMode="decimal"
           value={text}
@@ -57,17 +87,17 @@ export function NumberField({ label, value, onChange, min, max, unit, digits = 2
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur()
           }}
-          className={`w-full min-w-0 bg-transparent px-2 py-1 text-sm tabular-nums text-slate-900 outline-none ${inputClassName}`}
+          className={`${INPUT} ${alignRight ? 'text-right' : ''} ${inputClassName}`}
         />
-        {unit && <span className="pr-2 text-xs whitespace-nowrap text-slate-500">{unit}</span>}
+        {unit && <Unit>{unit}</Unit>}
       </span>
-      {hint && <span className="text-[11px] leading-snug text-slate-500">{hint}</span>}
+      {hint && <span className="text-small text-muted">{hint}</span>}
     </label>
   )
 }
 
 /** Like NumberField, but may be left blank (null), e.g. for a reading that was not taken. */
-export function OptionalNumberField({ label, value, onChange, min, max, unit, digits = 2, className = '', placeholder = '–', title }: Omit<NumberFieldProps, 'value' | 'onChange'> & {
+export function OptionalNumberField({ label, value, onChange, min, max, unit, digits = 2, className = '', placeholder = '–', title, alignRight = false }: Omit<NumberFieldProps, 'value' | 'onChange'> & {
   value: number | null
   onChange: (v: number | null) => void
   placeholder?: string
@@ -91,9 +121,9 @@ export function OptionalNumberField({ label, value, onChange, min, max, unit, di
     setText(show(next))
   }
   return (
-    <label className={`flex flex-col gap-1 ${className}`} title={title}>
-      {label && <span className="text-[11px] font-medium text-slate-500">{label}</span>}
-      <span className="flex items-center rounded-md bg-white ring-1 ring-slate-300 focus-within:ring-2 focus-within:ring-sky-500">
+    <label className={`flex flex-col justify-end gap-1 ${className}`} title={title}>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      <span className={WELL}>
         <input
           inputMode="decimal"
           value={text}
@@ -111,37 +141,56 @@ export function OptionalNumberField({ label, value, onChange, min, max, unit, di
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur()
           }}
-          className="w-full min-w-0 bg-transparent px-2 py-1 text-sm tabular-nums text-slate-900 outline-none placeholder:text-slate-400"
+          className={`${INPUT} ${alignRight ? 'text-right' : ''}`}
         />
-        {unit && <span className="pr-2 text-xs whitespace-nowrap text-slate-500">{unit}</span>}
+        {unit && <Unit>{unit}</Unit>}
       </span>
     </label>
+  )
+}
+
+/** Free text in the same well, e.g. a source name. */
+export function TextField({ label, value, onChange, className = '' }: { label?: ReactNode; value: string; onChange: (v: string) => void; className?: string }) {
+  return (
+    <label className={`flex flex-col justify-end gap-1 ${className}`}>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      <span className={WELL}>
+        <input value={value} onChange={(e) => onChange(e.target.value)} className={`${INPUT} font-sans`} />
+      </span>
+    </label>
+  )
+}
+
+function Chevron({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className={`size-4 shrink-0 ${className}`}>
+      <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+    </svg>
   )
 }
 
 interface SelectFieldProps<T extends string> {
   label?: ReactNode
   value: T
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; disabled?: boolean }[]
   onChange: (v: T) => void
   className?: string
 }
 
 export function SelectField<T extends string>({ label, value, options, onChange, className = '' }: SelectFieldProps<T>) {
   return (
-    <label className={`flex flex-col gap-1 ${className}`}>
-      {label && <span className="text-[11px] font-medium text-slate-500">{label}</span>}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="rounded-md bg-white px-2 py-1 text-sm text-slate-900 ring-1 ring-slate-300 outline-none focus:ring-2 focus:ring-sky-500"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+    <label className={`flex flex-col justify-end gap-1 ${className}`}>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      <span className={`${WELL} relative`}>
+        <select value={value} onChange={(e) => onChange(e.target.value as T)} className={`${INPUT} cursor-pointer appearance-none pr-7 font-sans`}>
+          {options.map((o) => (
+            <option key={o.value} value={o.value} disabled={o.disabled}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <Chevron className="pointer-events-none absolute right-1.5 text-muted" />
+      </span>
     </label>
   )
 }
@@ -153,24 +202,28 @@ interface SegmentedProps<T extends string> {
   label?: string
 }
 
+/** Joined, squared buttons; the active one is set on the inset colour with an accent bar along its bottom. */
 export function Segmented<T extends string>({ value, options, onChange, label }: SegmentedProps<T>) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-lg bg-slate-100 p-0.5 ring-1 ring-slate-200">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={o.value === value}
-          title={o.title}
-          onClick={() => onChange(o.value)}
-          className={`rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
-            o.value === value ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div role="radiogroup" aria-label={label} className="inline-flex h-7 overflow-hidden rounded-control border border-rule-strong bg-surface">
+      {options.map((o) => {
+        const on = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            title={o.title}
+            onClick={() => onChange(o.value)}
+            className={`relative border-l border-rule px-3 text-body whitespace-nowrap first:border-l-0 focus-visible:-outline-offset-2 ${
+              on ? 'bg-inset font-semibold text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-accent' : 'text-muted hover:text-ink'
+            }`}
+          >
+            {o.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -184,13 +237,13 @@ export function Stepper({ value, onChange, min = 1, max = 100, title, className 
   title: string
   className?: string
 }) {
-  const btn = 'grid w-5 place-items-center text-slate-500 hover:text-sky-700 disabled:opacity-30 disabled:hover:text-slate-500'
+  const btn = 'grid h-full w-5 place-items-center text-muted hover:text-ink disabled:opacity-30 disabled:hover:text-muted'
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-md bg-white ring-1 ring-slate-200 ${className}`} title={title}>
+    <span className={`inline-flex h-6 shrink-0 items-center rounded-control border border-rule-strong bg-inset ${className}`} title={title}>
       <button type="button" aria-label="One fewer" disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))} className={btn}>
         −
       </button>
-      <span className="min-w-6 text-center text-[11px] font-semibold text-slate-800 tabular-nums">×{value}</span>
+      <span className="min-w-6 text-center font-mono text-small font-medium text-ink">×{value}</span>
       <button type="button" aria-label="One more" disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))} className={btn}>
         +
       </button>
@@ -198,12 +251,60 @@ export function Stepper({ value, onChange, min = 1, max = 100, title, className 
   )
 }
 
-export function Chip({ className, children }: { className: string; children: ReactNode }) {
+export type LampStatus = 'ok' | 'warn' | 'crit' | 'idle'
+
+const LAMP: Record<LampStatus, { mark: string; text: string }> = {
+  ok: { mark: 'bg-ok', text: 'text-ink' },
+  warn: { mark: 'bg-warn', text: 'text-warn-ink' },
+  crit: { mark: 'bg-crit', text: 'text-crit-ink' },
+  idle: { mark: 'bg-rule-strong', text: 'text-muted' },
+}
+
+/** Status lamp: a small square in the status colour, then text that names the state (never colour alone). */
+export function Lamp({ status, children, title, className = '' }: { status: LampStatus; children: ReactNode; title?: string; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ring-1 ring-inset ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 text-small whitespace-nowrap ${LAMP[status].text} ${className}`} title={title}>
+      <span className={`size-2 shrink-0 ${LAMP[status].mark}`} aria-hidden="true" />
       {children}
     </span>
   )
+}
+
+type ButtonVariant = 'primary' | 'secondary' | 'quiet'
+
+const BUTTON: Record<ButtonVariant, string> = {
+  primary: 'border-accent bg-accent text-on-accent hover:border-accent-hover hover:bg-accent-hover',
+  secondary: 'border-rule-strong bg-surface text-ink hover:bg-inset',
+  quiet: 'border-transparent text-accent hover:bg-accent-tint',
+}
+
+/** The three button styles: one solid primary per region, outlined secondary, text-only quiet. */
+export function Button({ variant = 'secondary', onClick, children, title, disabled = false, className = '', type = 'button' }: {
+  variant?: ButtonVariant
+  onClick?: () => void
+  children: ReactNode
+  title?: string
+  disabled?: boolean
+  className?: string
+  type?: 'button' | 'submit'
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      title={title}
+      disabled={disabled}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={`inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-control border px-2.5 text-body font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:border-rule disabled:bg-bg disabled:text-muted ${BUTTON[variant]} ${className}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** Secondary button, kept under its old name for links between tools ("Stored energy details →"). */
+export function LinkButton(props: { onClick: () => void; children: ReactNode; title?: string; disabled?: boolean }) {
+  return <Button variant="secondary" {...props} />
 }
 
 export function IconButton({ label, onClick, children, className = '' }: { label: string; onClick: () => void; children: ReactNode; className?: string }) {
@@ -214,7 +315,7 @@ export function IconButton({ label, onClick, children, className = '' }: { label
       title={label}
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      className={`grid size-6 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 ${className}`}
+      className={`grid size-6 shrink-0 place-items-center rounded-control text-muted hover:bg-bg hover:text-ink ${className}`}
     >
       {children}
     </button>
@@ -222,8 +323,8 @@ export function IconButton({ label, onClick, children, className = '' }: { label
 }
 
 /**
- * A titled card. With `onToggle` the title folds the body away; `collapsedAside` replaces `aside` while folded (e.g. a
- * one-line result).
+ * A flat section: uppercase label header over a hairline rule. With `onToggle` the title folds the body away;
+ * `collapsedAside` replaces `aside` while folded (e.g. a one-line result).
  */
 export function Panel({ title, aside, children, className = '', collapsed = false, onToggle, collapsedAside }: {
   title: ReactNode
@@ -235,63 +336,73 @@ export function Panel({ title, aside, children, className = '', collapsed = fals
   collapsedAside?: ReactNode
 }) {
   return (
-    <section className={`rounded-xl bg-white ring-1 ring-slate-200 ${className}`}>
-      <header className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 ${collapsed ? '' : 'border-b border-slate-100'}`}>
+    <section className={`border-b border-rule bg-surface ${className}`}>
+      <header className={`flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1 ${collapsed ? '' : 'border-b border-rule'}`}>
         {onToggle ? (
-          <button type="button" onClick={onToggle} aria-expanded={!collapsed} className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 hover:text-sky-700">
-            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className={`size-4 text-slate-400 transition-transform ${collapsed ? '-rotate-90' : ''}`}>
-              <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
-            </svg>
+          <button type="button" onClick={onToggle} aria-expanded={!collapsed} className={`flex items-center gap-1 hover:text-ink ${LABEL}`}>
+            <Chevron className={`transition-transform ${collapsed ? '-rotate-90' : ''}`} />
             {title}
           </button>
         ) : (
-          <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+          <h2 className={LABEL}>{title}</h2>
         )}
         {collapsed ? collapsedAside : aside}
       </header>
-      {!collapsed && <div className="p-4">{children}</div>}
+      {!collapsed && <div className="p-3">{children}</div>}
     </section>
   )
 }
 
-/** Small secondary button, for tool-level actions and links between tools. */
-export function LinkButton({ onClick, children, title, disabled = false }: { onClick: () => void; children: ReactNode; title?: string; disabled?: boolean }) {
+/**
+ * One labelled result: uppercase label, mono value with its unit set smaller beside it, optional status lamp and
+ * sub-line. `size="lg"` is for key results, which are the biggest thing on screen.
+ */
+export function Readout({ label, value, unit, sub, status, size = 'md', title }: {
+  label: ReactNode
+  value: ReactNode
+  unit?: ReactNode
+  sub?: ReactNode
+  status?: { level: LampStatus; text: ReactNode }
+  size?: 'lg' | 'md'
+  title?: string
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      disabled={disabled}
-      className="rounded-md px-2 py-1 text-xs font-medium text-sky-700 ring-1 ring-slate-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
-    >
-      {children}
-    </button>
+    <div className="flex min-w-0 flex-col gap-0.5" title={title}>
+      <span className={LABEL}>{label}</span>
+      <span className="flex flex-wrap items-baseline gap-x-1">
+        <span className={`font-mono font-medium text-ink ${size === 'lg' ? 'text-readout' : 'text-readout-sm'}`}>{value}</span>
+        {unit && <span className="font-mono text-small text-muted">{unit}</span>}
+      </span>
+      {status && <Lamp status={status.level}>{status.text}</Lamp>}
+      {sub && <span className="text-small text-muted">{sub}</span>}
+    </div>
   )
 }
 
-/** One labelled result value. */
-export function Stat({ label, value, sub, strong = false }: { label: ReactNode; value: ReactNode; sub?: ReactNode; strong?: boolean }) {
+/**
+ * A row of readouts separated by hairline rules. Every readout carries a left rule; the wrapper clips the ones in the
+ * first column, so the rules stay correct however the row wraps.
+ */
+export function ReadoutRow({ children, className = 'sm:grid-cols-4' }: { children: ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[11px] font-medium text-slate-500">{label}</span>
-      <span className={`tabular-nums ${strong ? 'text-xl font-semibold text-slate-900' : 'text-sm font-semibold text-slate-800'}`}>{value}</span>
-      {sub && <span className="text-[11px] text-slate-500 tabular-nums">{sub}</span>}
+    <div className="overflow-hidden">
+      <div className={`-ml-3 grid grid-cols-2 gap-y-3 [&>*]:border-l [&>*]:border-rule [&>*]:px-3 ${className}`}>{children}</div>
     </div>
   )
 }
 
 /**
  * A note from the API: "critical" is for things people must know (mostly safety), shown in red; "note" is worth acting
- * on, shown in yellow; "assumption" is a standing modelling assumption, listed in `Assumptions`.
+ * on, shown in amber; "assumption" is a standing modelling assumption, listed in `Assumptions`.
  */
 export interface Note {
   level: 'note' | 'critical' | 'assumption'
   text: string
 }
 
-function WarningIcon({ className }: { className: string }) {
+function WarningIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className={`mt-px size-4 shrink-0 ${className}`}>
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="mt-px size-4 shrink-0 text-crit">
       <path
         fillRule="evenodd"
         d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
@@ -302,36 +413,42 @@ function WarningIcon({ className }: { className: string }) {
 }
 
 const TONES = {
-  red: { box: 'bg-rose-50 text-rose-800 ring-rose-200 font-medium', icon: 'text-rose-600' },
-  yellow: { box: 'bg-amber-50 text-amber-900 ring-amber-200', icon: 'text-amber-500' },
+  crit: 'border-crit bg-crit-tint text-crit-ink font-medium',
+  warn: 'border-warn bg-warn-tint text-warn-ink',
 }
 
-function Callout({ children, tone }: { children: ReactNode; tone: keyof typeof TONES }) {
-  const t = TONES[tone]
+/** Left status bar on a tinted block; critical ones carry a warning glyph and role="alert". */
+export function Callout({ children, tone }: { children: ReactNode; tone: keyof typeof TONES }) {
   return (
-    <p role={tone === 'red' ? 'alert' : 'note'} className={`flex items-start gap-2 rounded-md px-3 py-2 ring-1 ${t.box}`}>
-      <WarningIcon className={t.icon} />
+    <p role={tone === 'crit' ? 'alert' : 'note'} className={`flex items-start gap-2 border-l-[3px] px-3 py-2 text-small ${TONES[tone]}`}>
+      {tone === 'crit' && <WarningIcon />}
       <span>{children}</span>
     </p>
   )
 }
 
 /**
- * Errors and notes under a result: errors and critical notes in red, other notes in yellow, critical ones first.
+ * Errors and notes under a result: errors and critical notes in red, other notes in amber, critical ones first.
  * Assumptions are left out (show them with `Assumptions`), unless `withAssumptions` folds them in at the end.
  */
-export function Notes({ error, notes, withAssumptions = false }: { error?: string | null; notes?: (Note | string)[]; withAssumptions?: boolean }) {
+export function Notes({ error, notes, withAssumptions = false, className = '' }: {
+  error?: string | null
+  notes?: (Note | string)[]
+  withAssumptions?: boolean
+  /** Spacing around the block when it sits loose in a column (nothing is rendered when there is nothing to say). */
+  className?: string
+}) {
   const all = (notes ?? []).map((n) => (typeof n === 'string' ? { level: 'note' as const, text: n } : n))
   const list = all.filter((n) => n.level !== 'assumption')
   const assumed = withAssumptions ? all.filter((n) => n.level === 'assumption') : []
-  if (!error && !list.length && assumed.length) return <Assumptions notes={assumed} />
+  if (!error && !list.length && assumed.length) return <Assumptions notes={assumed} className={className} />
   if (!error && !list.length) return null
   const sorted = [...list.filter((n) => n.level === 'critical'), ...list.filter((n) => n.level !== 'critical')]
   return (
-    <div className="flex flex-col gap-1.5 text-xs">
-      {error && <Callout tone="red">{error}</Callout>}
+    <div className={`flex flex-col gap-1 ${className}`}>
+      {error && <Callout tone="crit">{error}</Callout>}
       {sorted.map((n) => (
-        <Callout key={n.text} tone={n.level === 'critical' ? 'red' : 'yellow'}>
+        <Callout key={n.text} tone={n.level === 'critical' ? 'crit' : 'warn'}>
           {n.text}
         </Callout>
       ))}
@@ -341,12 +458,12 @@ export function Notes({ error, notes, withAssumptions = false }: { error?: strin
 }
 
 /** Standing modelling assumptions, folded away under one line. */
-export function Assumptions({ notes }: { notes?: Note[] }) {
+export function Assumptions({ notes, className = '' }: { notes?: Note[]; className?: string }) {
   const list = (notes ?? []).filter((n) => n.level === 'assumption')
   if (!list.length) return null
   return (
-    <details className="text-[11px] text-slate-500">
-      <summary className="cursor-pointer select-none hover:text-slate-700">Assumptions ({list.length})</summary>
+    <details className={`text-small text-muted ${className}`}>
+      <summary className={`cursor-pointer select-none hover:text-ink ${LABEL}`}>Assumptions ({list.length})</summary>
       <ul className="mt-1 ml-4 list-disc space-y-0.5">
         {list.map((n) => (
           <li key={n.text}>{n.text}</li>
@@ -356,11 +473,31 @@ export function Assumptions({ notes }: { notes?: Note[] }) {
   )
 }
 
-export function Toggle({ label, checked, onChange }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ label, checked, onChange, title }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void; title?: string }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-700">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="size-4 accent-sky-600" />
+    <label className="flex items-center gap-2 text-body text-ink" title={title}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="size-3.5" />
       {label}
     </label>
+  )
+}
+
+/** On/off switch for hardware that is in or out of the line: square track and knob. */
+export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation()
+        onChange(!checked)
+      }}
+      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-control transition-colors ${checked ? 'bg-accent' : 'bg-rule-strong'}`}
+    >
+      <span className={`inline-block size-3 bg-inset transition-transform ${checked ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+    </button>
   )
 }

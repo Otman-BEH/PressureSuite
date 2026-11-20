@@ -4,21 +4,13 @@ import { useStore } from '../store'
 import type { StepOut } from '../types'
 import { FillCharts } from './FillChart'
 import { TimelineCharts } from './TimelineCharts'
-import { Chip, Panel, Segmented } from '../../../shared/ui'
+import { Button, LABEL, Lamp, type LampStatus, Notes, Panel, Readout, ReadoutRow, Segmented } from '../../../shared/ui'
 
-function Stat({ label, value, unit, sub, title }: { label: string; value: string; unit?: string; sub?: ReactNode; title?: string }) {
-  return (
-    <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-200" title={title}>
-      <div className="text-[11px] font-medium text-slate-500">{label}</div>
-      <div className="text-xl font-semibold text-slate-900">
-        {value} {unit && <span className="text-xs font-normal text-slate-500">{unit}</span>}
-      </div>
-      {sub && <div className="mt-0.5 text-[11px] text-slate-500">{sub}</div>}
-    </div>
-  )
+function Stat(props: { label: string; value: string; unit?: string; sub?: ReactNode; title?: string; status?: { level: LampStatus; text: ReactNode }; size?: 'lg' | 'md' }) {
+  return <Readout {...props} />
 }
 
-const th = 'px-2 py-1.5 text-left text-[11px] font-medium text-slate-500 whitespace-nowrap'
+const th = 'px-2 py-1.5 text-left text-small font-medium text-muted whitespace-nowrap'
 const td = 'px-2 py-1.5 whitespace-nowrap tabular-nums'
 
 export function ResultsPanel() {
@@ -36,13 +28,13 @@ export function ResultsPanel() {
   if (sim.error)
     return (
       <Panel title="Results">
-        <p className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800 ring-1 ring-rose-200">Simulation failed: {sim.error}</p>
+        <p className="border-l-3 border-crit bg-crit-tint px-3 py-2 text-body text-crit-ink">Simulation failed: {sim.error}</p>
       </Panel>
     )
   if (!result || sequenceLength === 0)
     return (
       <Panel title="Results">
-        <p className="text-sm text-slate-500">Add sources to the fill sequence to simulate the cascade.</p>
+        <p className="text-body text-muted">Add sources to the fill sequence to simulate the cascade.</p>
       </Panel>
     )
 
@@ -70,38 +62,28 @@ export function ResultsPanel() {
     <Panel
       title="Results"
       aside={
-        <button
-          type="button"
+        <Button
+          variant="primary"
           onClick={() => useStore.getState().commitFill()}
           disabled={s.connections === 0}
           title="Saves this fill to the history, carries every source's leftover gas into the inventory and starts a new, empty COPV"
-          className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-900 disabled:bg-slate-300"
         >
           Fill next COPV →
-        </button>
+        </Button>
       }
     >
       <div className="flex flex-col gap-5">
         {result.warnings.length > 0 && (
-          <ul className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
-            {result.warnings.map((w) => (
-              <li key={w}>⚠ {w}</li>
-            ))}
-          </ul>
+          <Notes notes={result.warnings} />
         )}
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
+        <ReadoutRow className="md:grid-cols-3 xl:grid-cols-6">
           <Stat
             label={`COPV settled at ${fmt(ambient)} °C`}
             value={fmt(s.copv_settled.pressure_barg)}
             unit="barg"
-            sub={
-              s.target_reached ? (
-                <Chip className="bg-emerald-50 text-emerald-800 ring-emerald-200">✓ Target reached</Chip>
-              ) : (
-                <Chip className="bg-amber-50 text-amber-800 ring-amber-200">⚠ {fmt(s.shortfall_bar)} bar short</Chip>
-              )
-            }
+            size="lg"
+            status={s.target_reached ? { level: 'ok', text: 'Target reached' } : { level: 'warn', text: `${fmt(s.shortfall_bar)} bar short` }}
           />
           {!isothermal && (
             <>
@@ -118,31 +100,13 @@ export function ResultsPanel() {
               s.leaked_kg > 0 ? `+ ${fmt(s.leaked_kg, 2)} kg leaked` : 'no leak loss',
             ].filter(Boolean).join(' · ')}
           />
-          <Stat
-            label="Wasted exergy"
-            value={fmt(s.wasted_exergy_kj, 0)}
-            unit="kJ"
-            sub="throttling + cooling losses"
-            title="Work potential destroyed when gas throttles across a pressure difference and when hot gas cools. A good cascade keeps it low."
-          />
           <Stat label="Sources opened" value={`${s.sources_opened}`} sub={`${s.connections} connections · ${s.cooldowns} cool-downs`} />
-          {s.pump_energy_kwh > 0 && (
-            <Stat label="Pumping" value={fmt(s.pump_energy_kwh, 2)} unit="kWh" sub={timeOn ? `≈ ${fmtMin(s.pump_time_min)} at rated flow` : 'machine work'} />
-          )}
           {s.time && (
             <Stat
               label="Cycle time per COPV"
               value={fmtMin(s.time.total_min)}
               sub={`hook-up ${fmtMin(s.time.handling_min)} · fill ${fmtMin(s.time.fill_min)} · settle ${fmtMin(s.time.settle_min)} · hold ${fmtMin(s.time.hold_min)}${s.time.after_test_min > 0 ? ` · after test ${fmtMin(s.time.after_test_min)}` : ''}`}
               title="Estimate only: temperatures and pressures follow the selected thermodynamic model."
-            />
-          )}
-          {s.hx_duty_kwh !== 0 && (
-            <Stat
-              label="Heat exchanger"
-              value={fmt(s.hx_duty_kwh, 3)}
-              unit={s.hx_duty_kwh > 0 ? 'kWh removed' : 'kWh added'}
-              sub={s.hx_chiller_kwh > 0 ? `chiller work ≥ ${fmt(s.hx_chiller_kwh, 3)} kWh` : 'no chiller needed'}
             />
           )}
           {s.vented_kg > 0 && s.copv_after_test && (
@@ -156,11 +120,11 @@ export function ResultsPanel() {
               sub={`${fmt(s.recovery_energy_kwh, 2)} kWh${timeOn ? ` · ≈ ${fmtMin(s.recovery_time_min)}` : ''}`}
             />
           )}
-        </div>
+        </ReadoutRow>
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-semibold text-slate-700">Plots</h3>
+            <h3 className={LABEL}>Plots</h3>
             <Segmented<'sequence' | 'delivered'>
               label="Plot against"
               value={plot}
@@ -178,16 +142,16 @@ export function ResultsPanel() {
           )}
         </div>
 
-        <details className="rounded-lg ring-1 ring-slate-200">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-700 select-none hover:bg-slate-50">
+        <details className="ring-1 ring-rule">
+          <summary className="cursor-pointer px-3 py-2 text-small font-semibold text-ink select-none hover:bg-bg">
             Step-by-step details
-            <span className="ml-2 font-normal text-slate-500">every step, and each source after the fill</span>
+            <span className="ml-2 font-normal text-muted">every step, and each source after the fill</span>
           </summary>
-          <div className="flex flex-col gap-4 border-t border-slate-100 px-3 py-3">
+          <div className="flex flex-col gap-4 border-t border-rule px-3 py-3">
             <div className="overflow-x-auto">
-              <h3 className="mb-1 text-xs font-semibold text-slate-700">Steps</h3>
-              <table className="w-full text-xs text-slate-700">
-                <thead className="border-b border-slate-200">
+              <h3 className="mb-1 text-small font-semibold text-ink">Steps</h3>
+              <table className="w-full text-small text-ink">
+                <thead className="border-b border-rule">
                   <tr>
                     <th className={th}>#</th>
                     <th className={th}>Step</th>
@@ -203,16 +167,15 @@ export function ResultsPanel() {
                     {anyHx && <th className={`${th} text-right`}>HX exit (°C)</th>}
                     {anyTime && <th className={`${th} text-right`}>Time</th>}
                     <th className={`${th} text-right`}>Settled gain (bar)</th>
-                    <th className={`${th} text-right`}>Wasted exergy (kJ)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-rule">
                   {result.steps.map((st) => (
-                    <tr key={st.index} title={st.message} className={st.type === 'recovery' || st.type === 'vent' ? 'bg-slate-50' : ''}>
+                    <tr key={st.index} title={st.message} className={st.type === 'recovery' || st.type === 'vent' ? 'bg-surface' : ''}>
                       <td className={td}>{st.index}</td>
                       <td className={td}>{stepName(st)}</td>
                       <td className={td}>
-                        <Chip className={STATUS[st.status].chip}>{STATUS[st.status].label}</Chip>
+                        <Lamp status={STATUS[st.status].lamp}>{STATUS[st.status].label}</Lamp>
                       </td>
                       <td className={`${td} text-right`}>{fmt(st.delivered_kg, 2)}</td>
                       {anyLeak && <td className={`${td} text-right`}>{fmt(st.leaked_kg, 2)}</td>}
@@ -233,7 +196,6 @@ export function ResultsPanel() {
                       )}
                       {anyTime && <td className={`${td} text-right`}>{st.duration_min !== null ? fmtMin(st.duration_min) : '–'}</td>}
                       <td className={`${td} text-right`}>{fmt(st.settled_gain_bar)}</td>
-                      <td className={`${td} text-right`}>{fmt(st.wasted_exergy_kj, 0)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -242,9 +204,9 @@ export function ResultsPanel() {
 
             {used.length > 0 && (
               <div className="overflow-x-auto">
-                <h3 className="mb-1 text-xs font-semibold text-slate-700">Sources after this fill</h3>
-                <table className="w-full text-xs text-slate-700">
-                  <thead className="border-b border-slate-200">
+                <h3 className="mb-1 text-small font-semibold text-ink">Sources after this fill</h3>
+                <table className="w-full text-small text-ink">
+                  <thead className="border-b border-rule">
                     <tr>
                       <th className={th}>Source</th>
                       <th className={`${th} text-right`}>Start (barg)</th>
@@ -255,7 +217,7 @@ export function ResultsPanel() {
                       <th className={`${th} text-right`}>Gas used / recovered (kg)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-rule">
                     {used.map((r) => (
                       <tr key={r.id}>
                         <td className={td}>{labels.get(r.id)}</td>

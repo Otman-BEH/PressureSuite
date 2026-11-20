@@ -2,7 +2,7 @@ import { DEFAULT_TIME, fmt } from '../format'
 import { useStore } from '../store'
 import { ClockIcon } from './icons'
 import { Group, Modal, Switch } from './Modal'
-import { NumberField } from '../../../shared/ui'
+import { Button, NumberField } from '../../../shared/ui'
 
 /** Outer surface of a cylinder with hemispherical ends, 3 diameters long (matches the backend estimate). */
 export function estimatedArea(volumeL: number): number {
@@ -20,14 +20,14 @@ export function TimeModelCard() {
     <Modal
       title="Time estimate"
       subtitle="Durations only: temperatures and pressures still follow the thermodynamic model"
-      icon={<ClockIcon className="size-9 text-sky-700" />}
+      icon={<ClockIcon className="size-9 text-ink" />}
       footer={
-        <button type="button" onClick={() => set({ ...DEFAULT_TIME, enabled: tm.enabled })} className="text-xs text-slate-500 hover:text-slate-800">
+        <Button variant="quiet" onClick={() => set({ ...DEFAULT_TIME, enabled: tm.enabled })}>
           Reset to defaults
-        </button>
+        </Button>
       }
     >
-      <label className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-800 ring-1 ring-slate-200">
+      <label className="flex items-center justify-between gap-3 bg-surface px-3 py-2 text-body text-ink ring-1 ring-rule">
         Show time estimates
         <Switch checked={tm.enabled} onChange={(enabled) => set({ enabled })} label="Time estimate on" />
       </label>
@@ -56,12 +56,12 @@ export function TimeModelCard() {
       >
         <NumberField label="Outside heat-transfer coeff." value={tm.hExtWm2K} onChange={(hExtWm2K) => set({ hExtWm2K })} min={0.1} max={10000} unit="W/m²·K" />
         <NumberField label="Done within" value={tm.settleToleranceK} onChange={(settleToleranceK) => set({ settleToleranceK })} min={0.1} max={100} unit="K of ambient" />
-        <label className="col-span-2 flex items-center gap-2 text-xs text-slate-700">
+        <label className="col-span-2 flex items-center gap-2 text-small text-ink">
           <input
             type="checkbox"
             checked={tm.copvAreaM2 === null}
             onChange={(e) => set({ copvAreaM2: e.target.checked ? null : Math.round(estimate * 100) / 100 })}
-            className="accent-sky-600"
+           
           />
           Estimate the COPV outer area from its volume ({fmt(estimate, 2)} m², length = 3 diameters)
         </label>

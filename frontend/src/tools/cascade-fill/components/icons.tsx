@@ -5,7 +5,7 @@ export function BottleIcon({ className = '' }: IconProps) {
     <svg viewBox="0 0 24 40" className={className} aria-hidden="true">
       <rect x="9" y="1" width="6" height="5" rx="1" fill="currentColor" opacity="0.55" />
       <rect x="4" y="6" width="16" height="32" rx="7" fill="currentColor" />
-      <rect x="7" y="11" width="3" height="20" rx="1.5" fill="white" opacity="0.35" />
+      <rect x="7" y="11" width="3" height="20" rx="1.5" fill="var(--color-inset)" opacity="0.35" />
     </svg>
   )
 }

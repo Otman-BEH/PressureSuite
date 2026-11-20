@@ -13,12 +13,17 @@ export function fmtSig(value: number, sig = 3): string {
   return fmt(value, digits)
 }
 
+/** Energy in J, kJ or MJ, whichever reads best, as [value, unit]. Input in kJ. */
+export function energyParts(kj: number): [string, string] {
+  const abs = Math.abs(kj)
+  if (abs >= 1000) return [fmtSig(kj / 1000), 'MJ']
+  if (abs >= 1) return [fmtSig(kj), 'kJ']
+  return [fmtSig(kj * 1000), 'J']
+}
+
 /** Energy in J, kJ or MJ, whichever reads best. Input in kJ. */
 export function fmtEnergy(kj: number): string {
-  const abs = Math.abs(kj)
-  if (abs >= 1000) return `${fmtSig(kj / 1000)} MJ`
-  if (abs >= 1) return `${fmtSig(kj)} kJ`
-  return `${fmtSig(kj * 1000)} J`
+  return energyParts(kj).join(' ')
 }
 
 /** Minutes as "45 min" or "2 h 05 min". */

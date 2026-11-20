@@ -62,8 +62,8 @@ class HeatExchangerIn(BaseModel):
 
     installed: bool = False
     control: Literal["outlet_temp", "effectiveness"] = "outlet_temp"
-    outlet_temp_c: float = Field(default=5.0, ge=-200, le=300)
-    coolant_temp_c: float = Field(default=5.0, ge=-200, le=300)
+    outlet_temp_c: float = Field(default=20.0, ge=-200, le=300)
+    coolant_temp_c: float = Field(default=20.0, ge=-200, le=300)
     effectiveness_pct: float = Field(default=80.0, gt=0, le=100)
 
 

@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
+import { StatusBar } from './shared/StatusBar'
 import { TOOLS, type Tool } from './tools'
 
 /** The active tool comes from the URL hash (#/cascade-fill), so refreshes and links keep the tab. */
@@ -19,9 +20,9 @@ function useActiveTool(): [Tool, (id: string) => void] {
 
 function Logo() {
   return (
-    <svg viewBox="0 0 32 32" className="size-7" aria-hidden="true">
-      <rect x="9" y="2" width="14" height="28" rx="7" fill="#2a78d6" />
-      <rect x="12.5" y="7" width="3" height="16" rx="1.5" fill="white" opacity="0.4" />
+    <svg viewBox="0 0 32 32" className="size-5" aria-hidden="true">
+      <rect x="4" y="4" width="24" height="24" fill="var(--color-ink)" />
+      <rect x="9" y="17" width="14" height="6" fill="var(--color-accent)" />
     </svg>
   )
 }
@@ -31,17 +32,17 @@ export default function App() {
   const ActiveTool = active.component
 
   useEffect(() => {
-    document.title = `${active.name} · pressuresuite`
+    document.title = `${active.name} · Pressure Suite`
   }, [active])
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100 text-slate-900">
-      <nav className="flex items-end gap-6 bg-slate-900 px-5 pt-2.5">
-        <div className="flex items-center gap-2 pb-2.5">
+    <div className="flex min-h-screen flex-col bg-bg pb-6 text-ink">
+      <nav className="flex h-10 items-stretch gap-8 border-b border-rule bg-surface px-3">
+        <div className="flex items-center gap-2">
           <Logo />
-          <span className="text-base font-semibold tracking-tight text-white">pressuresuite</span>
+          <span className="text-body font-semibold tracking-[0.08em] whitespace-nowrap text-ink">PRESSURE SUITE</span>
         </div>
-        <div role="tablist" aria-label="Tools" className="flex gap-1">
+        <div role="tablist" aria-label="Tools" className="flex items-stretch gap-5">
           {TOOLS.map((t) => {
             const selected = t.id === active.id
             return (
@@ -52,11 +53,9 @@ export default function App() {
                 aria-selected={selected}
                 title={t.description}
                 onClick={() => select(t.id)}
-                className={
-                  selected
-                    ? 'rounded-t-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900'
-                    : 'rounded-t-lg px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white'
-                }
+                className={`relative px-0.5 text-body whitespace-nowrap focus-visible:-outline-offset-2 ${
+                  selected ? 'font-semibold text-ink after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-accent' : 'text-muted hover:text-ink'
+                }`}
               >
                 {t.name}
               </button>
@@ -64,9 +63,10 @@ export default function App() {
           })}
         </div>
       </nav>
-      <Suspense fallback={<p className="p-6 text-sm text-slate-500">Loading {active.name}…</p>}>
+      <Suspense fallback={<p className="p-3 text-small text-muted">Loading {active.name}…</p>}>
         <ActiveTool key={active.id} />
       </Suspense>
+      <StatusBar gauge={active.gauge} gaugeDetail={active.gaugeDetail} />
     </div>
   )
 }

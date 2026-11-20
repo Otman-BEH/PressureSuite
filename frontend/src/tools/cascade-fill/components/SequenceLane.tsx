@@ -7,11 +7,12 @@ import { currentBarg, parallelCount, useStore } from '../store'
 import { SEQUENCE_ZONE, type DragData } from '../dnd'
 import type { SequenceItem, Source, StepOut } from '../types'
 import { ArrowRight, BoosterIcon, BundleIcon, ClockIcon, CompressorIcon, CooldownIcon, HeatExchangerIcon, ManifoldIcon, PlusIcon, XIcon } from './icons'
-import { Chip, IconButton, NumberField, Panel, Stepper } from '../../../shared/ui'
+import { Button, IconButton, Lamp, NumberField, Panel, Stepper } from '../../../shared/ui'
 import { FluidChip } from './ui'
+import { COLOR, DATA_VESSEL } from '../../../shared/theme'
 
 const inlineSelect =
-  'max-w-[7.5rem] truncate rounded bg-transparent px-0.5 text-xs font-medium text-sky-800 outline-none hover:bg-sky-50 focus:ring-2 focus:ring-sky-500'
+  'max-w-[7.5rem] truncate rounded-control bg-transparent px-0.5 text-small font-medium text-ink outline-none hover:bg-accent-tint focus:ring-2 focus:ring-accent'
 
 /** "from <source> into <COPV|bundle> [until X barg]" on one line; most steps only show "into COPV". */
 type Flow = Extract<SequenceItem, { type: 'source' | 'pump' | 'manifold' }>
@@ -35,7 +36,7 @@ function Route({ item }: { item: Flow }) {
     v.startsWith('pump:') ? setStepTarget(item.uid, { feedsUid: v.slice(5) }) : setStepTarget(item.uid, { targetId: v || null, stopBarg: null })
   return (
     <div
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-slate-500"
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 text-small text-muted"
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
@@ -104,15 +105,15 @@ function ManifoldMembers({ item }: { item: Extract<SequenceItem, { type: 'manifo
   const byId = new Map(sources.map((s) => [s.id, s]))
   const addable = sources.filter((s) => !item.sourceIds.includes(s.id) && s.fluid === fluid)
   return (
-    <div className="mt-2 flex items-stretch" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-      <div className="flex flex-1 flex-col gap-1">
+    <div className="mt-2 flex min-w-0 items-stretch" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         {item.sourceIds.map((id) => {
           const src = byId.get(id)
           return (
-            <div key={id} className="flex items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md bg-white px-1.5 py-1 text-xs ring-1 ring-slate-200">
-                <BundleIcon className={`h-4 w-4 shrink-0 ${src?.fluid === 'Helium' ? 'text-violet-600' : 'text-sky-600'}`} />
-                <span className="truncate font-medium text-slate-800">{src?.label ?? '?'}</span>
+            <div key={id} className="flex min-w-0 items-center">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-control bg-inset px-1.5 py-1 text-small ring-1 ring-rule">
+                <BundleIcon className={`h-4 w-4 shrink-0 text-ink`} />
+                <span className="truncate font-medium text-ink">{src?.label ?? '?'}</span>
                 {src && (
                   <Stepper
                     className="ml-auto"
@@ -121,22 +122,22 @@ function ManifoldMembers({ item }: { item: Extract<SequenceItem, { type: 'manifo
                     title={`How many identical ${src.kind}s like ${src.label} are on the manifold (all at the same pressure)`}
                   />
                 )}
-                <span className="text-slate-500 tabular-nums">{src ? fmt(currentBarg(src), 0) : '–'}</span>
+                <span className="text-muted tabular-nums">{src ? fmt(currentBarg(src), 0) : '–'}</span>
                 <button
                   type="button"
                   aria-label={`Take ${src?.label} off the manifold`}
                   onClick={() => removeFromManifold(item.uid, id)}
-                  className="text-slate-300 hover:text-rose-600"
+                  className="text-muted hover:text-crit"
                 >
                   <XIcon className="size-3" />
                 </button>
               </div>
-              <span className="h-0.5 w-2 shrink-0 bg-slate-400" aria-hidden="true" />
+              <span className="h-0.5 w-2 shrink-0 bg-rule-strong" aria-hidden="true" />
             </div>
           )
         })}
         {item.sourceIds.length < 2 && (
-          <div className="rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-center text-[11px] text-slate-400">
+          <div className="rounded-control border border-dashed border-rule px-2 py-1.5 text-center text-small text-muted">
             Drop bundles here (2 or more)
           </div>
         )}
@@ -156,7 +157,7 @@ function ManifoldMembers({ item }: { item: Extract<SequenceItem, { type: 'manifo
           </select>
         )}
       </div>
-      <span className="w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden="true" />
+      <span className="w-1.5 shrink-0 bg-rule-strong" aria-hidden="true" />
     </div>
   )
 }
@@ -170,15 +171,15 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
     <>
       <div className="flex items-start justify-between gap-1">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="grid size-5 shrink-0 place-items-center rounded-full bg-slate-800 text-[11px] font-semibold text-white">{index + 1}</span>
+          <span className="grid size-5 shrink-0 place-items-center bg-ink font-mono text-label font-semibold text-surface">{index + 1}</span>
           {item.type === 'cooldown' && (
-            <span className="flex items-center gap-1 text-sm font-semibold text-cyan-800">
+            <span className="flex items-center gap-1 text-body font-semibold text-ink">
               <CooldownIcon className="size-4" /> Cool-down
             </span>
           )}
-          {item.type === 'source' && <span className="truncate text-sm font-semibold text-slate-800">{source && sourceName(source)}</span>}
+          {item.type === 'source' && <span className="truncate text-body font-semibold text-ink">{source && sourceName(source)}</span>}
           {item.type === 'manifold' && (
-            <span className="flex items-center gap-1 truncate text-sm font-semibold text-slate-800">
+            <span className="flex items-center gap-1 truncate text-body font-semibold text-ink">
               <ManifoldIcon className="size-4 shrink-0 -scale-x-100" /> Bundle manifold
             </span>
           )}
@@ -188,13 +189,13 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => useStore.getState().openEditor(item.machine)}
               title="Edit the machine's properties"
-              className="flex items-center gap-1 truncate text-sm font-semibold text-amber-800 hover:underline"
+              className="flex items-center gap-1 truncate text-body font-semibold text-warn-ink hover:underline"
             >
               <MachineIcon className="size-4 shrink-0" /> {MACHINES[item.machine].name}
             </button>
           )}
         </div>
-        <IconButton label="Remove step" onClick={remove} className="hover:text-rose-600">
+        <IconButton label="Remove step" onClick={remove} className="hover:text-crit">
           <XIcon className="size-3.5" />
         </IconButton>
       </div>
@@ -206,13 +207,13 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
         </div>
       )}
 
-      <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 tabular-nums">
+      <div className="mt-2 flex flex-col gap-1 text-small text-muted tabular-nums">
         {item.type !== 'cooldown' && source && (
           <div className="flex items-center gap-1.5">
             <FluidChip fluid={source.fluid} />
             {step?.source_before && step.source_after ? (
               <span>
-                <b className="text-slate-800">{fmt(step.source_before.pressure_barg)}</b> → <b className="text-slate-800">{fmt(step.source_after.pressure_barg)}</b> barg
+                <b className="text-ink">{fmt(step.source_before.pressure_barg)}</b> → <b className="text-ink">{fmt(step.source_after.pressure_barg)}</b> barg
               </span>
             ) : (
               <span>{fmt(currentBarg(source))} barg @ 20 °C</span>
@@ -221,7 +222,7 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
         )}
         {(item.type === 'manifold' || (item.type === 'pump' && item.feedStepUid)) && step?.source_before && step.source_after && step.delivered_kg > 0 && (
           <span>
-            {item.type === 'manifold' ? 'Header' : 'Feed'} <b className="text-slate-800">{fmt(step.source_before.pressure_barg)}</b> → <b className="text-slate-800">{fmt(step.source_after.pressure_barg)}</b> barg
+            {item.type === 'manifold' ? 'Header' : 'Feed'} <b className="text-ink">{fmt(step.source_before.pressure_barg)}</b> → <b className="text-ink">{fmt(step.source_after.pressure_barg)}</b> barg
           </span>
         )}
         {item.type !== 'cooldown' && step?.source_after && !isothermal && step.delivered_kg > 0 && (
@@ -231,12 +232,12 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
           <span>
             {step.target_before && step.target_after ? (
               <>
-                {targetLabel} {fmt(step.target_before.pressure_barg)} → <b className="text-slate-800">{fmt(step.target_after.pressure_barg)}</b> barg
+                {targetLabel} {fmt(step.target_before.pressure_barg)} → <b className="text-ink">{fmt(step.target_after.pressure_barg)}</b> barg
                 {!isothermal && <> · {fmt(step.target_after.temp_c)} °C gas</>}
               </>
             ) : (
               <>
-                COPV {fmt(step.copv_before.pressure_barg)} → <b className="text-slate-800">{fmt(step.copv_after.pressure_barg)}</b> barg
+                COPV {fmt(step.copv_before.pressure_barg)} → <b className="text-ink">{fmt(step.copv_after.pressure_barg)}</b> barg
                 {!isothermal && <> · {fmt(step.copv_after.temp_c)} °C gas</>}
               </>
             )}
@@ -245,23 +246,23 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
         {step && step.delivered_kg > 0 && (
           <span>
             +{fmt(step.delivered_kg, 2)} kg into {step.target_after ? targetLabel : 'COPV'}
-            {step.leaked_kg > 0 && <span className="text-slate-400"> ({fmt(step.leaked_kg, 2)} leaked)</span>}
+            {step.leaked_kg > 0 && <span className="text-muted"> ({fmt(step.leaked_kg, 2)} leaked)</span>}
           </span>
         )}
         {step && step.type === 'pump' && step.delivered_kg > 0 && (
-          <span className="text-amber-800">
+          <span className="text-warn-ink">
             Outlet gas ≤ {fmt(step.outlet_temp_max_c ?? 0)} °C · {fmt(step.energy_kwh, 2)} kWh
           </span>
         )}
         {step && step.hx_outlet_max_c !== null && step.delivered_kg > 0 && (
-          <span className="text-teal-800">
+          <span className="text-ink">
             HX exit {fmt(step.hx_outlet_min_c ?? 0, 0)}
             {Math.abs((step.hx_outlet_max_c ?? 0) - (step.hx_outlet_min_c ?? 0)) >= 0.5 && <>–{fmt(step.hx_outlet_max_c, 0)}</>} °C ·{' '}
             {fmt(Math.abs(step.hx_duty_kwh), 3)} kWh {step.hx_duty_kwh >= 0 ? 'removed' : 'added'}
           </span>
         )}
         {step && step.duration_min !== null && (step.delivered_kg > 0 || step.type === 'cooldown') && (
-          <span className="flex items-center gap-1 text-sky-800">
+          <span className="flex items-center gap-1 text-ink">
             <ClockIcon className="size-3.5" /> {fmtMin(step.duration_min)}
           </span>
         )}
@@ -269,7 +270,7 @@ function StepBody({ item, index, step, source }: { item: SequenceItem; index: nu
 
       {step && (
         <div className="mt-2" title={step.message}>
-          <Chip className={STATUS[step.status].chip}>{STATUS[step.status].label}</Chip>
+          <Lamp status={STATUS[step.status].lamp}>{STATUS[step.status].label}</Lamp>
         </div>
       )}
     </>
@@ -284,10 +285,10 @@ function SortableStep(props: { item: SequenceItem; index: number; step?: StepOut
   const external = active && (active.data.current as DragData | undefined)?.origin !== 'sequence'
   const dimmed = props.step && ['not_needed', 'no_flow', 'fluid_mismatch'].includes(props.step.status)
   const tone = {
-    cooldown: 'bg-cyan-50/60 ring-cyan-200',
-    pump: 'bg-amber-50/50 ring-amber-200',
-    source: 'bg-white ring-slate-200',
-    manifold: 'bg-slate-50 ring-slate-300',
+    cooldown: 'bg-inset ring-rule',
+    pump: 'bg-inset ring-rule',
+    source: 'bg-inset ring-rule',
+    manifold: 'bg-inset ring-rule',
   }[item.type]
   const joining = external && isOver && item.type === 'manifold' && (active?.data.current as DragData | undefined)?.origin === 'pool' 
 
@@ -297,11 +298,11 @@ function SortableStep(props: { item: SequenceItem; index: number; step?: StepOut
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      className={`relative w-56 shrink-0 cursor-grab rounded-xl p-3 ring-1 active:cursor-grabbing ${tone} ${isDragging ? 'z-10 opacity-40' : ''} ${
+      className={`relative ${item.type === 'manifold' ? 'w-64' : 'w-56'} shrink-0 cursor-grab p-3 ring-1 active:cursor-grabbing ${tone} ${isDragging ? 'z-10 opacity-40' : ''} ${
         dimmed ? 'opacity-60' : ''
-      } ${joining ? 'ring-2 ring-sky-500' : ''} hover:ring-sky-400`}
+      } ${joining ? 'ring-2 ring-accent' : ''} hover:ring-accent`}
     >
-      {external && isOver && !joining && <div className="absolute top-2 bottom-2 -left-2.5 w-1 rounded-full bg-sky-500" aria-hidden="true" />}
+      {external && isOver && !joining && <div className="absolute top-2 bottom-2 -left-2.5 w-0.5 bg-accent" aria-hidden="true" />}
       <StepBody {...props} />
     </div>
   )
@@ -325,20 +326,19 @@ function CopvNode({ count }: { count: number }) {
   const copv = useStore((s) => s.copv)
   const shown = Math.min(count, 4)
   const level = summary ? Math.min(1, Math.max(0, summary.copv_settled.pressure_barg / summary.target_barg)) : 0
-  const color = copv.fluid === 'Helium' ? '#4a3aa7' : '#2a78d6'
   return (
-    <div className="flex w-32 shrink-0 flex-col items-center gap-1 rounded-xl bg-white p-2 text-center text-[11px] text-slate-700 ring-2 ring-slate-800">
+    <div className="flex w-32 shrink-0 flex-col items-center gap-1 bg-inset p-2 text-center text-small text-ink ring-2 ring-ink">
       <div className="flex items-end gap-1" aria-hidden="true">
         {Array.from({ length: shown }, (_, i) => (
           <svg key={i} viewBox="0 0 20 44" className="h-11 w-5">
-            <rect x="1.5" y="1.5" width="17" height="41" rx="8.5" fill="#f1f5f9" stroke="#334155" strokeWidth="1.5" />
+            <rect x="1.5" y="1.5" width="17" height="41" rx="8.5" fill={COLOR.inset} stroke={COLOR.ink} strokeWidth="1.5" />
             <clipPath id={`copv-node-${i}`}>
               <rect x="1.5" y="1.5" width="17" height="41" rx="8.5" />
             </clipPath>
-            <rect x="0" y={43 - 41 * level} width="20" height={41 * level} fill={color} opacity="0.85" clipPath={`url(#copv-node-${i})`} />
+            <rect x="0" y={43 - 41 * level} width="20" height={41 * level} fill={DATA_VESSEL} clipPath={`url(#copv-node-${i})`} />
           </svg>
         ))}
-        {count > shown && <span className="pb-1 text-slate-500">+{count - shown}</span>}
+        {count > shown && <span className="pb-1 text-muted">+{count - shown}</span>}
       </div>
       <span className="font-semibold">{count > 1 ? `${count} COPVs` : 'COPV'}</span>
       <span className="tabular-nums">
@@ -364,28 +364,24 @@ export function SequenceLane() {
 
   return (
     <Panel
-      className="h-full"
       title={
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2" title="Connected left to right, into the COPV. Drag to reorder.">
           Fill sequence
-          {loading && <span className="text-xs font-normal text-slate-400">simulating…</span>}
+          {loading && <span className="text-small font-normal text-muted">simulating…</span>}
         </span>
       }
       aside={
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] text-slate-500">Connected left to right, into the COPV. Drag to reorder.</span>
-          {sequence.length > 0 && (
-            <button type="button" onClick={() => useStore.getState().clearSequence()} className="text-xs text-slate-500 hover:text-rose-600">
-              Clear
-            </button>
-          )}
-        </div>
+        sequence.length > 0 && (
+          <Button variant="quiet" onClick={() => useStore.getState().clearSequence()}>
+            Clear
+          </Button>
+        )
       }
     >
       <div
         ref={setNodeRef}
-        className={`flex min-h-40 items-center gap-1 overflow-x-auto rounded-lg p-2 transition-colors ${
-          accepting ? (isOver ? 'bg-sky-50 outline-2 outline-sky-400' : 'outline-2 outline-dashed outline-sky-300') : ''
+        className={`flex items-center gap-1 overflow-x-auto p-1 transition-colors ${
+          accepting ? (isOver ? 'bg-accent-tint outline-2 outline-accent' : 'outline-2 outline-dashed outline-accent') : ''
         }`}
       >
         <SortableContext items={sequence.map((s) => s.uid)} strategy={horizontalListSortingStrategy}>
@@ -397,56 +393,56 @@ export function SequenceLane() {
                 step={steps?.[i]}
                 source={(item.type === 'source' || item.type === 'pump') && item.sourceId ? byId.get(item.sourceId) : undefined}
               />
-              <ArrowRight className="size-5 shrink-0 text-slate-300" />
+              <ArrowRight className="size-5 shrink-0 text-muted" />
             </Fragment>
           ))}
         </SortableContext>
         {sequence.length ? (
           <div
-            className="grid h-32 w-10 shrink-0 place-items-center rounded-xl border-2 border-dashed border-slate-200 text-slate-300"
+            className="grid h-32 w-10 shrink-0 place-items-center border-2 border-dashed border-rule text-muted"
             title="Drop here to add a step at the end"
           >
             <PlusIcon className="size-4" />
           </div>
         ) : (
-          <div className="grid h-32 w-44 shrink-0 place-items-center rounded-xl border-2 border-dashed border-slate-200 px-3 text-center text-xs text-slate-400">
+          <div className="grid h-32 w-44 shrink-0 place-items-center border-2 border-dashed border-rule px-3 text-center text-small text-muted">
             Drag sources, equipment or a cool-down here to build the sequence
           </div>
         )}
         {hx.installed && (
           <>
-            <ArrowRight className="size-5 shrink-0 text-slate-300" />
+            <ArrowRight className="size-5 shrink-0 text-muted" />
             <button
               type="button"
               onClick={() => useStore.getState().openEditor('hx')}
               title="Heat exchanger in the fill line: every fill step passes through it"
-              className="flex w-28 shrink-0 flex-col items-center gap-1 rounded-xl bg-teal-50 p-2 text-center text-[11px] text-teal-900 ring-1 ring-teal-200 hover:ring-teal-400"
+              className="flex w-28 shrink-0 flex-col items-center gap-1 bg-inset p-2 text-center text-small text-ink ring-1 ring-rule hover:ring-accent"
             >
-              <HeatExchangerIcon className="size-7 text-teal-600" />
+              <HeatExchangerIcon className="size-7 text-ink" />
               <span className="font-semibold">Heat exchanger</span>
               <span>
                 {hx.control === 'outlet_temp' ? `exit ${fmt(hx.outletTempC)} °C` : `${fmt(hx.effectivenessPct, 0)} % · ${fmt(hx.coolantTempC)} °C`}
               </span>
-              {isothermal && <span className="text-amber-700">no effect (isothermal)</span>}
+              {isothermal && <span className="text-warn-ink">no effect (isothermal)</span>}
             </button>
           </>
         )}
         {manifold.installed && (
           <>
-            <ArrowRight className="size-5 shrink-0 text-slate-300" />
+            <ArrowRight className="size-5 shrink-0 text-muted" />
             <button
               type="button"
               onClick={() => useStore.getState().openEditor('manifold')}
               title="Manifold: the gas splits equally between the COPVs"
-              className="flex w-24 shrink-0 flex-col items-center gap-1 rounded-xl bg-slate-50 p-2 text-center text-[11px] text-slate-700 ring-1 ring-slate-300 hover:ring-slate-500"
+              className="flex w-24 shrink-0 flex-col items-center gap-1 bg-surface p-2 text-center text-small text-ink ring-1 ring-rule hover:ring-rule-strong"
             >
-              <ManifoldIcon className="size-7 text-slate-700" />
+              <ManifoldIcon className="size-7 text-ink" />
               <span className="font-semibold">Manifold</span>
               <span>split ÷ {parallelCount(manifold)}</span>
             </button>
           </>
         )}
-        <ArrowRight className="size-5 shrink-0 text-slate-300" />
+        <ArrowRight className="size-5 shrink-0 text-muted" />
         <CopvNode count={parallelCount(manifold)} />
       </div>
     </Panel>

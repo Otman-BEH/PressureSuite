@@ -1,12 +1,13 @@
 import { fmt, fmtMin } from '../../shared/format'
+import type { LampStatus } from '../../shared/ui'
 import type { Fluid, HeatExchanger, MachineKind, MachineSpec, Mode, Source, StepStatus, TimeModel } from './types'
 
 export const SOURCE_REF_TEMP_C = 20
 export const FLUID_DEFAULT_PRESSURE: Record<Fluid, number> = { Nitrogen: 300, Helium: 200 }
 
-export const FLUIDS: Record<Fluid, { short: string; dot: string; chip: string }> = {
-  Nitrogen: { short: 'N₂', dot: 'bg-sky-600', chip: 'bg-sky-50 text-sky-800 ring-sky-200' },
-  Helium: { short: 'He', dot: 'bg-violet-600', chip: 'bg-violet-50 text-violet-800 ring-violet-200' },
+export const FLUIDS: Record<Fluid, { short: string }> = {
+  Nitrogen: { short: 'N₂' },
+  Helium: { short: 'He' },
 }
 
 export const MODES: Record<Mode, { label: string; hint: string }> = {
@@ -34,8 +35,8 @@ export const DEFAULT_MACHINES: Record<MachineKind, MachineSpec> = {
 export const DEFAULT_HX: HeatExchanger = {
   installed: false,
   control: 'outlet_temp',
-  outletTempC: 5,
-  coolantTempC: 5,
+  outletTempC: 20,
+  coolantTempC: 20,
   effectivenessPct: 80,
 }
 
@@ -50,19 +51,20 @@ export const DEFAULT_TIME: TimeModel = {
   holdMin: 10,
 }
 
-export const STATUS: Record<StepStatus, { label: string; chip: string }> = {
-  vented: { label: 'Vented', chip: 'bg-slate-100 text-slate-700 ring-slate-300' },
-  filled: { label: 'Bundle filled', chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  feeds_pump: { label: 'Feeds pump', chip: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  target_reached: { label: 'Target reached', chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  equalized: { label: 'Equalized', chip: 'bg-sky-50 text-sky-800 ring-sky-200' },
-  inlet_limit: { label: 'Inlet limit', chip: 'bg-indigo-50 text-indigo-800 ring-indigo-200' },
-  outlet_limit: { label: 'Outlet limit', chip: 'bg-indigo-50 text-indigo-800 ring-indigo-200' },
-  ratio_limit: { label: 'Ratio limit', chip: 'bg-indigo-50 text-indigo-800 ring-indigo-200' },
-  no_flow: { label: 'No flow', chip: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  not_needed: { label: 'Not needed', chip: 'bg-slate-100 text-slate-600 ring-slate-200' },
-  cooled: { label: 'Cooled', chip: 'bg-cyan-50 text-cyan-800 ring-cyan-200' },
-  fluid_mismatch: { label: 'Wrong gas', chip: 'bg-rose-50 text-rose-800 ring-rose-200' },
+/** Step results as status lamps (DESIGN.md): ok when a goal is met, warn at a limit, crit for wrong input, idle otherwise. */
+export const STATUS: Record<StepStatus, { label: string; lamp: LampStatus }> = {
+  vented: { label: 'Vented', lamp: 'idle' },
+  filled: { label: 'Bundle filled', lamp: 'ok' },
+  feeds_pump: { label: 'Feeds pump', lamp: 'idle' },
+  target_reached: { label: 'Target reached', lamp: 'ok' },
+  equalized: { label: 'Equalized', lamp: 'idle' },
+  inlet_limit: { label: 'Inlet limit', lamp: 'warn' },
+  outlet_limit: { label: 'Outlet limit', lamp: 'warn' },
+  ratio_limit: { label: 'Ratio limit', lamp: 'warn' },
+  no_flow: { label: 'No flow', lamp: 'warn' },
+  not_needed: { label: 'Not needed', lamp: 'idle' },
+  cooled: { label: 'Cooled', lamp: 'idle' },
+  fluid_mismatch: { label: 'Wrong gas', lamp: 'crit' },
 }
 
 export { fmt, fmtMin }

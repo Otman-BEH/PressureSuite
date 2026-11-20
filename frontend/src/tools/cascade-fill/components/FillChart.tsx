@@ -1,14 +1,29 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fmt } from '../format'
 import type { TracePoint } from '../types'
+import {
+  axisProps,
+  CHART_MARGIN,
+  ChartFrame,
+  ChartLegend,
+  ChartTooltip,
+  cursorProps,
+  gridProps,
+  lineProps,
+  referenceProps,
+  yAxisProps,
+  type SeriesKey,
+} from '../../../shared/chartTheme'
+import { DATA_OTHER, DATA_VESSEL } from '../../../shared/theme'
 
-// Reference categorical palette, slots 1-3 in fixed order (validated all-pairs).
-const SERIES = {
-  copv: { color: '#2a78d6', label: 'COPV gas pressure' },
-  settled: { color: '#eb6834', label: 'COPV settled pressure (at ambient)' },
-  source: { color: '#1baf7a', label: 'Connected source pressure' },
-} as const
-const INK = { muted: '#898781', secondary: '#52514e', grid: '#e1e0d9', axis: '#c3c2b7' }
+// The COPV is the vessel colour; its settled pressure is the same colour, dashed. The connected source changes from
+// step to step, so it is not one entity and takes the neutral series colour.
+const SERIES: Record<'copv' | 'settled' | 'source', SeriesKey> = {
+  copv: { key: 'copv', color: DATA_VESSEL, label: 'COPV gas pressure' },
+  settled: { key: 'settled', color: DATA_VESSEL, label: 'COPV settled pressure (at ambient)', dash: '5 3' },
+  source: { key: 'source', color: DATA_OTHER, label: 'Connected source pressure' },
+}
+type Key = keyof typeof SERIES
 
 interface Row {
   x: number
@@ -31,112 +46,61 @@ function toRows(trace: TracePoint[]): Row[] {
   return rows
 }
 
-const axisProps = {
-  tick: { fill: INK.muted, fontSize: 11 },
-  tickLine: false,
-  axisLine: { stroke: INK.axis },
-} as const
-
-function TooltipBox({ active, payload, unit }: { active?: boolean; payload?: { payload: Row; dataKey: string; value: number | null; color: string }[]; unit: string }) {
+function TooltipBox({ active, payload, unit }: { active?: boolean; payload?: { payload: Row; dataKey: string; value: number | null }[]; unit: string }) {
   if (!active || !payload?.length) return null
   const row = payload[0].payload
   return (
-    <div className="rounded-lg bg-white px-3 py-2 text-xs shadow-lg ring-1 ring-slate-200">
-      <div className="mb-1 font-medium text-slate-500 tabular-nums">{fmt(row.x, 2)} kg delivered</div>
-      {payload
+    <ChartTooltip
+      header={`${fmt(row.x, 2)} kg delivered`}
+      rows={payload
         .filter((p) => p.value !== null && p.value !== undefined)
-        .map((p) => (
-          <div key={p.dataKey} className="flex items-center gap-2 text-slate-800 tabular-nums">
-            <span className="h-0.5 w-3 rounded" style={{ background: p.color }} />
-            <span className="text-slate-500">{p.dataKey === 'temp' ? 'COPV gas temperature' : SERIES[p.dataKey as keyof typeof SERIES].label}</span>
-            <span className="ml-auto pl-3 font-semibold">
-              {fmt(p.value as number)} {unit}
-            </span>
-          </div>
-        ))}
-    </div>
+        .map((p) => {
+          const s = p.dataKey === 'temp' ? { ...SERIES.copv, label: 'COPV gas temperature' } : SERIES[p.dataKey as Key]
+          return { key: p.dataKey, label: s.label, color: s.color, dash: s.dash, value: `${fmt(p.value as number)} ${unit}` }
+        })}
+    />
   )
 }
 
-function Legend({ keys }: { keys: (keyof typeof SERIES)[] }) {
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
-      {keys.map((k) => (
-        <span key={k} className="flex items-center gap-1.5">
-          <span className="h-0.5 w-4 rounded" style={{ background: SERIES[k].color }} />
-          {SERIES[k].label}
-        </span>
-      ))}
-    </div>
-  )
-}
+const xAxis = <XAxis type="number" dataKey="x" domain={[0, 'dataMax']} {...axisProps} tickFormatter={(v: number) => fmt(v, 1)} />
 
 export function FillCharts({ trace, targetBarg, ambientC, isothermal }: { trace: TracePoint[]; targetBarg: number; ambientC: number; isothermal: boolean }) {
   const rows = toRows(trace)
-  const keys: (keyof typeof SERIES)[] = isothermal ? ['copv', 'source'] : ['copv', 'settled', 'source']
+  const keys: Key[] = isothermal ? ['copv', 'source'] : ['copv', 'settled', 'source']
   return (
-    <div className={`grid gap-4 ${isothermal ? '' : 'xl:grid-cols-2'}`}>
-      <figure className="flex flex-col gap-2">
-        <figcaption className="text-xs font-semibold text-slate-700">Pressure vs gas delivered (barg)</figcaption>
-        <Legend keys={keys} />
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-            <CartesianGrid stroke={INK.grid} vertical={false} />
-            <XAxis type="number" dataKey="x" domain={[0, 'dataMax']} {...axisProps} tickFormatter={(v: number) => `${fmt(v, 1)} kg`} />
-            <YAxis {...axisProps} width={44} />
-            <Tooltip content={<TooltipBox unit="barg" />} cursor={{ stroke: INK.axis }} isAnimationActive={false} />
-            <ReferenceLine
-              y={targetBarg}
-              stroke={INK.secondary}
-              strokeWidth={1}
-              label={{ value: `Target ${fmt(targetBarg, 0)} barg`, position: 'insideTopLeft', fill: INK.secondary, fontSize: 11 }}
-            />
-            {keys.map((k) => (
-              <Line
-                key={k}
-                dataKey={k}
-                stroke={SERIES[k].color}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                dot={false}
-                activeDot={{ r: 4, stroke: '#fcfcfb', strokeWidth: 2 }}
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-            ))}
+    <div className={`grid gap-6 ${isothermal ? '' : 'xl:grid-cols-2'}`}>
+      <ChartFrame yTitle="Pressure · barg" xTitle="Gas delivered · kg" legend={<ChartLegend items={keys.map((k) => SERIES[k])} />}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={rows} margin={CHART_MARGIN}>
+            <CartesianGrid {...gridProps} />
+            {xAxis}
+            <YAxis {...yAxisProps} />
+            <Tooltip content={<TooltipBox unit="barg" />} cursor={cursorProps} isAnimationActive={false} />
+            <ReferenceLine y={targetBarg} {...referenceProps(`Target ${fmt(targetBarg, 0)} barg`)} />
+            {keys.map((k) => {
+              const s = SERIES[k]
+              return <Line key={k} dataKey={k} connectNulls={false} {...lineProps(s.color, k === 'copv' ? 'vessel' : 'series', s.dash)} />
+            })}
           </LineChart>
         </ResponsiveContainer>
-      </figure>
+      </ChartFrame>
       {!isothermal && (
-        <figure className="flex flex-col gap-2">
-          <figcaption className="text-xs font-semibold text-slate-700">COPV gas temperature vs gas delivered (°C)</figcaption>
-          <div className="text-[11px] text-slate-500">Gas temperature only; heating of the composite from strain is not modelled.</div>
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-              <CartesianGrid stroke={INK.grid} vertical={false} />
-              <XAxis type="number" dataKey="x" domain={[0, 'dataMax']} {...axisProps} tickFormatter={(v: number) => `${fmt(v, 1)} kg`} />
-              <YAxis {...axisProps} width={44} />
-              <Tooltip content={<TooltipBox unit="°C" />} cursor={{ stroke: INK.axis }} isAnimationActive={false} />
-              <ReferenceLine
-                y={ambientC}
-                stroke={INK.secondary}
-                strokeWidth={1}
-                label={{ value: `Ambient ${fmt(ambientC)} °C`, position: 'insideBottomLeft', fill: INK.secondary, fontSize: 11 }}
-              />
-              <Line
-                dataKey="temp"
-                stroke={SERIES.copv.color}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                dot={false}
-                activeDot={{ r: 4, stroke: '#fcfcfb', strokeWidth: 2 }}
-                isAnimationActive={false}
-              />
+        <ChartFrame
+          yTitle="COPV gas temperature · °C"
+          xTitle="Gas delivered · kg"
+          note="Gas temperature only; heating of the composite from strain is not modelled."
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rows} margin={CHART_MARGIN}>
+              <CartesianGrid {...gridProps} />
+              {xAxis}
+              <YAxis {...yAxisProps} />
+              <Tooltip content={<TooltipBox unit="°C" />} cursor={cursorProps} isAnimationActive={false} />
+              <ReferenceLine y={ambientC} {...referenceProps(`Ambient ${fmt(ambientC)} °C`, 'insideBottomLeft')} />
+              <Line dataKey="temp" {...lineProps(DATA_VESSEL, 'vessel')} />
             </LineChart>
           </ResponsiveContainer>
-        </figure>
+        </ChartFrame>
       )}
     </div>
   )

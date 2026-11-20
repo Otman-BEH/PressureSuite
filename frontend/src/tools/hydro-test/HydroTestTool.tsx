@@ -1,10 +1,11 @@
 import { PressureTimeChart } from '../../shared/cycles'
 import { ToolActions } from '../../shared/files'
-import { fmt, fmtEnergy, fmtMin, fmtP, fmtSig } from '../../shared/format'
+import { ToolLayout } from '../../shared/ToolLayout'
+import { energyParts, fmt, fmtEnergy, fmtMin, fmtP, fmtSig } from '../../shared/format'
 import { LeakPanel } from '../../shared/leak'
 import { useStoredFlag } from '../../shared/storage'
 import { CycleTable, ExpansionPanel, RatesPanel, Sub, type ResultColumn } from '../../shared/testTool'
-import { Assumptions, IconButton, LinkButton, Notes, NumberField, OptionalNumberField, Panel, Segmented, SelectField, Stat } from '../../shared/ui'
+import { Assumptions, Button, IconButton, Lamp, LinkButton, Notes, NumberField, OptionalNumberField, Panel, Readout, ReadoutRow, Segmented, SelectField, TBODY, TD, TH, THEAD } from '../../shared/ui'
 import { useCalculation } from '../../shared/useCalculation'
 import { openInStoredEnergy } from '../stored-energy/store'
 import { api } from './api'
@@ -13,10 +14,9 @@ import type { CycleOut, HydroTestResponse, TestFluid } from './types'
 
 function InputsPanel() {
   const inputs = useStore((s) => s.inputs)
-  const { set, setLeak, load, reset } = useStore.getState()
+  const { set, setLeak } = useStore.getState()
   return (
-    <div className="flex flex-col gap-4">
-      <ToolActions tool="hydro-test" title="Hydrostatic Test" inputs={inputs} onImport={load} onReset={reset} />
+    <>
       <Panel title="Tank and test fluid">
         <div className="flex flex-col gap-3">
           <SelectField<TestFluid>
@@ -48,7 +48,7 @@ function InputsPanel() {
         settings={inputs.leak}
         onChange={setLeak}
       />
-    </div>
+    </>
   )
 }
 
@@ -101,7 +101,7 @@ function SummaryPanel({ result, loading }: { result: HydroTestResponse; loading:
       title="Summary"
       aside={
         <div className="flex items-center gap-3">
-          {loading && <span className="text-[11px] text-slate-400">Updating…</span>}
+          {loading && <span className="text-small text-muted">Updating…</span>}
           <LinkButton
             title="Open this tank, full at the test pressure, in the Stored Energy tab"
             onClick={() =>
@@ -121,13 +121,13 @@ function SummaryPanel({ result, loading }: { result: HydroTestResponse; loading:
       }
     >
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat strong label="Test pressure" value={`${fmtP(t.test_pressure_barg)} barg`} sub="highest cycle target" />
-          <Stat strong label="Liquid pumped in" value={`${fmtSig(t.pumped_l)} L`} sub={`${fmtSig(t.returned_l)} L back on venting`} />
-          <Stat strong label="Test duration" value={fmtMin(t.duration_min)} sub={`${fmt(t.cycle_count, 0)} cycle${t.cycle_count === 1 ? '' : 's'}`} />
-          <Stat strong label="Max stored energy" value={fmtEnergy(t.peak_energy_kj)} sub="at the test pressure, liquid + tank wall" />
-        </div>
-        <p className="text-[11px] text-slate-500 tabular-nums">
+        <ReadoutRow>
+          <Readout size="lg" label="Test pressure" value={fmtP(t.test_pressure_barg)} unit="barg" sub="highest cycle target" />
+          <Readout size="lg" label="Liquid pumped in" value={fmtSig(t.pumped_l)} unit="L" sub={`${fmtSig(t.returned_l)} L back on venting`} />
+          <Readout size="lg" label="Test duration" value={fmtMin(t.duration_min)} sub={`${fmt(t.cycle_count, 0)} cycle${t.cycle_count === 1 ? '' : 's'}`} />
+          <Readout size="lg" label="Max stored energy" value={energyParts(t.peak_energy_kj)[0]} unit={energyParts(t.peak_energy_kj)[1]} sub="at the test pressure, liquid + tank wall" />
+        </ReadoutRow>
+        <p className="font-mono text-small text-muted">
           {inputs.fluid} at 1 bar a: {fmt(result.density_kg_m3, 1)} kg/m³, bulk modulus {fmt(result.bulk_modulus_mpa, 0)} MPa · tank{' '}
           {result.tank_dilation_per_bar === null ? 'rigid' : `stretches ${fmtSig(result.tank_dilation_per_bar * 1e6)} ppm/bar`}
           {t.leaked_l > 0 && ` · ${fmtSig(t.leaked_l * 1e3)} mL lost in measured holds`}
@@ -147,8 +147,10 @@ function VolumeCheckPanel() {
     api.volumeCheck(inputs, signal),
   )
   const pocket = v.mode === 'gas_pocket'
-  const th = 'px-2 py-1.5 text-left text-[11px] font-medium whitespace-nowrap text-slate-500'
-  const td = 'px-2 py-1.5 text-right tabular-nums whitespace-nowrap'
+  const unitRow = 'font-mono font-normal tracking-normal normal-case'
+  const explain = pocket
+    ? `Pump a measured amount in and read the pressure rise: with the tank volume from the inputs (${fmtSig(inputs.volumeL)} L), the extra liquid over what a gas-free tank takes is the gas being compressed (Boyle's law, real gas). Gas volumes are given at 1 bar a so runs from different pressures compare. Measuring what comes back on venting ("depress") checks each run.`
+    : 'Pump a measured amount in and read the pressure rise: with the tank full of liquid, that sets its volume through the liquid compressibility and the tank stretch. Measuring what comes back on venting ("depress") checks each run.'
   return (
     <Panel
       title="Before cycling: volume and trapped gas check"
@@ -156,7 +158,7 @@ function VolumeCheckPanel() {
       onToggle={() => setOpen(!open)}
       collapsedAside={
         result && (
-          <span className="text-xs text-slate-600 tabular-nums">
+          <span className="font-mono text-small text-ink">
             {pocket ? 'Gas pocket' : 'Tank volume'} {fmtSig(result.mean_l)} L · {result.count} value{result.count === 1 ? '' : 's'}
           </span>
         )
@@ -173,12 +175,9 @@ function VolumeCheckPanel() {
         />
       }
     >
-      <div className="flex flex-col gap-4">
-        <p className="text-xs text-slate-600">
-          {pocket
-            ? `Pump a measured amount in and read the pressure rise: with the tank volume from the sidebar (${fmtSig(inputs.volumeL)} L), the extra liquid over what a gas-free tank takes is the gas being compressed (Boyle's law, real gas). Gas volumes are given at 1 bar a so runs from different pressures compare.`
-            : 'Pump a measured amount in and read the pressure rise: with the tank full of liquid, that sets its volume through the liquid compressibility and the tank stretch.'}{' '}
-          Add a run for each press; measuring what comes back on venting ("depress") checks it. Every value is averaged.
+      <div className="flex flex-col gap-3">
+        <p className="text-small text-muted" title={explain}>
+          One run per press: pumped-in volume between two pressures; every value is averaged.
         </p>
         {pocket && (
           <SelectField
@@ -194,47 +193,70 @@ function VolumeCheckPanel() {
           />
         )}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200">
+          <table className="w-full">
+            <thead className={THEAD}>
               <tr>
-                <th className={th}>#</th>
-                <th className={th}>From</th>
-                <th className={th}>To</th>
-                <th className={th}>Pumped in</th>
-                <th className={th}>Returned (optional)</th>
-                <th className={`${th} text-right`}>{pocket ? 'Gas pocket' : 'Tank volume'}, press</th>
-                <th className={`${th} text-right`}>depress</th>
-                <th className={`${th} text-right`}>{pocket ? 'Gas-free tank takes' : `${fmtSig(inputs.volumeL)} L tank takes`}</th>
-                <th className={th} />
+                <th className={TH}>#</th>
+                <th className={TH}>
+                  From<div className={unitRow}>barg</div>
+                </th>
+                <th className={TH}>
+                  To<div className={unitRow}>barg</div>
+                </th>
+                <th className={TH}>
+                  Pumped in<div className={unitRow}>L</div>
+                </th>
+                <th className={TH} title="Optional: liquid that came back on venting">
+                  Returned<div className={unitRow}>L, optional</div>
+                </th>
+                <th className={`${TH} text-right`}>
+                  {pocket ? 'Gas pocket' : 'Tank volume'}
+                  <div className={unitRow}>L, press</div>
+                </th>
+                <th className={`${TH} text-right`}>
+                  Depress<div className={unitRow}>L</div>
+                </th>
+                <th className={`${TH} text-right`} title={pocket ? 'What a gas-free tank takes for the same pressure rise' : `What a ${fmtSig(inputs.volumeL)} L tank takes for the same pressure rise`}>
+                  {pocket ? 'Gas-free tank' : `${fmtSig(inputs.volumeL)} L tank`}
+                  <div className={unitRow}>L, takes</div>
+                </th>
+                <th className={TH} />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className={TBODY}>
               {v.runs.map((r, i) => {
                 const out = result?.runs[i]
                 const off = out?.difference_pct != null && Math.abs(out.difference_pct) > 2
                 return (
                   <tr key={r.uid}>
-                    <td className="px-2 py-1.5 text-slate-500">{i + 1}</td>
-                    <td className="px-2 py-1.5">
-                      <NumberField className="w-24" unit="barg" value={r.fromBarg} min={0} max={10_000} digits={2} onChange={(fromBarg) => setVolumeRun(r.uid, { fromBarg })} />
+                    <td className="px-2 py-1.5 font-mono text-small text-muted">{i + 1}</td>
+                    <td className="px-2 py-1">
+                      <NumberField className="w-20" alignRight value={r.fromBarg} min={0} max={10_000} digits={2} onChange={(fromBarg) => setVolumeRun(r.uid, { fromBarg })} />
                     </td>
-                    <td className="px-2 py-1.5">
-                      <NumberField className="w-24" unit="barg" value={r.toBarg} min={0.01} max={10_000} digits={2} onChange={(toBarg) => setVolumeRun(r.uid, { toBarg })} />
+                    <td className="px-2 py-1">
+                      <NumberField className="w-20" alignRight value={r.toBarg} min={0.01} max={10_000} digits={2} onChange={(toBarg) => setVolumeRun(r.uid, { toBarg })} />
                     </td>
-                    <td className="px-2 py-1.5">
-                      <NumberField className="w-28" unit="L" value={r.pumpedL} min={0.000001} max={1_000_000} digits={4} onChange={(pumpedL) => setVolumeRun(r.uid, { pumpedL })} />
+                    <td className="px-2 py-1">
+                      <NumberField className="w-24" alignRight value={r.pumpedL} min={0.000001} max={1_000_000} digits={4} onChange={(pumpedL) => setVolumeRun(r.uid, { pumpedL })} />
                     </td>
-                    <td className="px-2 py-1.5">
-                      <OptionalNumberField className="w-28" unit="L" value={r.returnedL} min={0.000001} max={1_000_000} digits={4} onChange={(returnedL) => setVolumeRun(r.uid, { returnedL })} />
+                    <td className="px-2 py-1">
+                      <OptionalNumberField className="w-24" alignRight placeholder="not read" value={r.returnedL} min={0.000001} max={1_000_000} digits={4} onChange={(returnedL) => setVolumeRun(r.uid, { returnedL })} />
                     </td>
-                    <td className={td}>{out ? `${fmtSig(out.from_press_l)} L` : '–'}</td>
-                    <td className={td}>
-                      {out?.from_depress_l != null ? `${fmtSig(out.from_depress_l)} L` : '–'}
-                      {out?.difference_pct != null && (
-                        <div className={`text-[11px] ${off ? 'text-amber-700' : 'text-slate-500'}`}>{fmt(out.difference_pct, 1)} % apart</div>
-                      )}
+                    <td className={TD}>{out ? fmtSig(out.from_press_l) : '–'}</td>
+                    <td className={TD}>
+                      {out?.from_depress_l != null ? fmtSig(out.from_depress_l) : '–'}
+                      {out?.difference_pct != null &&
+                        (off ? (
+                          <div>
+                            <Lamp status="warn" title="Press and depress differ by more than 2 %">
+                              {fmt(out.difference_pct, 1)} % apart
+                            </Lamp>
+                          </div>
+                        ) : (
+                          <div className="text-muted">{fmt(out.difference_pct, 1)} % apart</div>
+                        ))}
                     </td>
-                    <td className={`${td} text-slate-600`}>{out?.expected_pumped_l != null ? `${fmtSig(out.expected_pumped_l)} L` : '–'}</td>
+                    <td className={`${TD} text-muted`}>{out?.expected_pumped_l != null ? fmtSig(out.expected_pumped_l) : '–'}</td>
                     <td className="px-1 py-1.5">
                       {v.runs.length > 1 && (
                         <IconButton label={`Remove run ${i + 1}`} onClick={() => removeVolumeRun(r.uid)}>
@@ -249,23 +271,24 @@ function VolumeCheckPanel() {
           </table>
         </div>
         <div>
-          <button type="button" onClick={addVolumeRun} className="rounded-md bg-sky-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-sky-700">
+          <Button variant="primary" onClick={addVolumeRun}>
             Add run
-          </button>
+          </Button>
         </div>
         {result && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat
-              strong
+          <ReadoutRow className="border-t border-rule pt-3 sm:grid-cols-4">
+            <Readout
+              size="lg"
               label={pocket ? 'Gas pocket (at 1 bar a), average' : 'Tank volume, average'}
-              value={`${fmtSig(result.mean_l)} L`}
+              value={fmtSig(result.mean_l)}
+              unit="L"
               sub={`over ${result.count} value${result.count === 1 ? '' : 's'}`}
             />
-            {result.spread_pct !== null && <Stat label="Spread" value={`${fmt(result.spread_pct, 1)} %`} sub="(max − min) / average" />}
+            {result.spread_pct !== null && <Readout label="Spread" value={fmt(result.spread_pct, 1)} unit="%" title="(max − min) / average" />}
             {result.pocket_energy_kj !== null && result.liquid_energy_kj !== null && (
-              <Stat label="Energy, gas pocket / liquid" value={`${fmtEnergy(result.pocket_energy_kj)} / ${fmtEnergy(result.liquid_energy_kj)}`} sub="at the highest run pressure" />
+              <Readout label="Energy, gas pocket / liquid" value={`${fmtEnergy(result.pocket_energy_kj)} / ${fmtEnergy(result.liquid_energy_kj)}`} sub="at the highest run pressure" />
             )}
-          </div>
+          </ReadoutRow>
         )}
         <Notes error={error} notes={result?.notes} withAssumptions />
       </div>
@@ -279,14 +302,15 @@ export function HydroTestTool() {
   const cycleKey = JSON.stringify({ ...inputs, volumeCheck: undefined, leak: undefined })
   const { result, error, loading } = useCalculation(cycleKey, (signal) => api.calculate(inputs, signal))
   const passes = result ? result.totals.cycle_count / inputs.cycles.length : 1
+  const { load, reset } = useStore.getState()
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start">
-      <aside className="w-full shrink-0 lg:w-80">
-        <InputsPanel />
-      </aside>
-      <main className="flex min-w-0 flex-1 flex-col gap-4">
-        <Notes error={error} />
+    <ToolLayout
+      name="Hydrostatic Test"
+      actions={<ToolActions tool="hydro-test" title="Hydrostatic Test" inputs={inputs} onImport={load} onReset={reset} />}
+      inputs={<InputsPanel />}
+    >
+        <Notes error={error} className="px-3 py-2" />
         <VolumeCheckPanel />
         {result && <SummaryPanel result={result} loading={loading} />}
         <Cycles result={result} />
@@ -296,12 +320,8 @@ export function HydroTestTool() {
             caption={passes > 1 ? `First two passes of ${fmt(passes, 0)}; totals cover all ${fmt(result.totals.cycle_count, 0)} cycles.` : undefined}
           />
         )}
-        {result && <Notes notes={result.notes} />}
-        <footer className="flex flex-col gap-1 px-1 pb-2 text-[11px] text-slate-500">
-          {result && <Assumptions notes={result.notes} />}
-          <p>Gauge pressures are relative to 1 bar a. Stored energy uses the Stored Energy tool's liquid calculation (p²V/2K plus wall strain).</p>
-        </footer>
-      </main>
-    </div>
+        {result && <Notes notes={result.notes} className="px-3 py-2" />}
+        {result && <Assumptions notes={result.notes} className="px-3 py-2" />}
+    </ToolLayout>
   )
 }
