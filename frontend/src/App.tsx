@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { StatusBar } from './shared/StatusBar'
+import { TopBarTimer } from './shared/timer'
 import { TOOLS, type Tool } from './tools'
 
 /** The active tool comes from the URL hash (#/cascade-fill), so refreshes and links keep the tab. */
@@ -31,10 +32,6 @@ export default function App() {
   const [active, select] = useActiveTool()
   const ActiveTool = active.component
 
-  useEffect(() => {
-    document.title = `${active.name} · Pressure Suite`
-  }, [active])
-
   return (
     <div className="flex min-h-screen flex-col bg-bg pb-6 text-ink">
       <nav className="flex h-10 items-stretch gap-8 border-b border-rule bg-surface px-3">
@@ -62,6 +59,7 @@ export default function App() {
             )
           })}
         </div>
+        <TopBarTimer title={`${active.name} · Pressure Suite`} />
       </nav>
       <Suspense fallback={<p className="p-3 text-small text-muted">Loading {active.name}…</p>}>
         <ActiveTool key={active.id} />
