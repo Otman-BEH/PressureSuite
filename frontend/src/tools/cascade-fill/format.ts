@@ -42,7 +42,8 @@ export const DEFAULT_HX: HeatExchanger = {
 
 export const DEFAULT_TIME: TimeModel = {
   enabled: false,
-  orificeMm: 2,
+  orificeMm: 4.572, // 1/4" OD × 0.035" wall tube: 0.180" inner diameter
+  orificeUnit: 'in',
   maxRateBarMin: 0,
   hExtWm2K: 10,
   copvAreaM2: null,

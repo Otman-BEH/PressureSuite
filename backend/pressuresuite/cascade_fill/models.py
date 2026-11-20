@@ -71,7 +71,7 @@ class TimeModelIn(BaseModel):
     """Optional time estimate. It does not change temperatures or pressures."""
 
     enabled: bool = False
-    orifice_mm: float = Field(default=2.0, gt=0, le=100, description="Effective valve/line flow diameter")
+    orifice_mm: float = Field(default=4.572, gt=0, le=100, description="Effective valve/line flow diameter (default: inner diameter of 1/4 in OD x 0.035 in wall tube)")
     max_rate_bar_min: float = Field(default=0.0, ge=0, le=10_000, description="COPV pressure-change limit; 0 = none")
     h_ext_w_m2k: float = Field(default=10.0, gt=0, le=10_000, description="Outside heat-transfer coefficient")
     copv_area_m2: float | None = Field(default=None, gt=0, le=1000, description="Outer surface; estimated if omitted")

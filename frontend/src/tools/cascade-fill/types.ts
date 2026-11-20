@@ -48,6 +48,8 @@ export interface HeatExchanger {
 export interface TimeModel {
   enabled: boolean
   orificeMm: number
+  /** Unit the flow diameter is shown in; the value is always stored and sent in mm. */
+  orificeUnit: 'mm' | 'in'
   maxRateBarMin: number
   hExtWm2K: number
   copvAreaM2: number | null
